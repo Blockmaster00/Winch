@@ -2,8 +2,10 @@
 ---@class Anchor
 ---@field object ModGameObject
 Anchor = {}
-Anchor.MODEL = ""
-Anchor.TEXTURE = ""
+Anchor.MODEL = "AnchorModel"
+Anchor.TEXTURE = "AnchorTexture"
+tm.physics.AddMesh("assets/Anchor.obj", Anchor.MODEL)
+tm.physics.AddTexture("assets/Anchor.png", Anchor.TEXTURE)
 
 ---@param pos ModVector3
 ---@param rotation ModVector3 | nil

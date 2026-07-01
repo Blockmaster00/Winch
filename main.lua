@@ -76,10 +76,8 @@ function SelectConnectionPoint(playerId, position)
         point = nil,
         distance = math.huge
     }
-    tm.os.Log("Starting")
     for point, visualizer in pairs(playerData[playerId].connectionPoints) do
         local pointPos
-        tm.os.Log("hmm")
         if point.ToString() == "Trailmakers.Mods.Api.Proxies.ModBlock"then
             pointPos = point.GetPosition()
         else
@@ -88,7 +86,6 @@ function SelectConnectionPoint(playerId, position)
 
         local distanceToPoint = tm.vector3.Distance(pointPos, position)
         if distanceToPoint <= 10 and distanceToPoint < closest.distance then
-            tm.os.Log("found".. point.ToString())
             closest = {
                 point = point,
                 distance = distanceToPoint
@@ -137,54 +134,6 @@ end
 function PlaceAnchor(playerId, position)
     local anchor = Anchor.new(position)
     table.insert(spawnedObjects, anchor.object)
-end
-
-
-function OnPlayerClick(callback)
-    local playerId = callback.playerId
-    local position = tm.vector3.Create(callback.value)
-    if playerData[playerId].connectingWinch then
-        SelectConnectionPoint(playerId, position)
-    elseif playerData[playerId].placingAnchor then
-        PlaceAnchor(playerId, position)
-    end
-end
-
-function OnPlayerPlaceRemoveAnchor(playerId)
-    if playerData[playerId].chatOpen then return end
-    playerData[playerId].placingAnchor = not playerData[playerId].placingAnchor
-end
-
-function OnPlayerPullWinchStart(playerId)
-    if playerData[playerId].chatOpen then return end
-    if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].isPulling = true
-    end
-end
-
-function OnPlayerExtendWinchStart(playerId)
-    if playerData[playerId].chatOpen then return end
-    if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].isExtending = true
-    end
-end
-
-function OnPlayerPullWinchStop(playerId)
-    if playerData[playerId].chatOpen then return end
-    if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].isPulling = false
-    end
-end
-
-function OnPlayerExtendWinchStop(playerId)
-    if playerData[playerId].chatOpen then return end
-    if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].isExtending = false
-    end
-end
-
-function OnOpenCloseChat(playerId)
-    playerData[playerId].chatOpen = not playerData[playerId].chatOpen
 end
 
 function OnPlayerJoined(player)
@@ -283,3 +232,53 @@ function TableContains(table, value)
     end
     return false
 end
+
+--#region PlayerCallback
+function OnPlayerClick(callback)
+    local playerId = callback.playerId
+    local position = tm.vector3.Create(callback.value)
+    if playerData[playerId].connectingWinch then
+        SelectConnectionPoint(playerId, position)
+    elseif playerData[playerId].placingAnchor then
+        PlaceAnchor(playerId, position)
+    end
+end
+
+function OnPlayerPlaceRemoveAnchor(playerId)
+    if playerData[playerId].chatOpen then return end
+    playerData[playerId].placingAnchor = not playerData[playerId].placingAnchor
+end
+
+function OnPlayerPullWinchStart(playerId)
+    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].playersWinch ~= nil then
+        playerData[playerId].isPulling = true
+    end
+end
+
+function OnPlayerExtendWinchStart(playerId)
+    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].playersWinch ~= nil then
+        playerData[playerId].isExtending = true
+    end
+end
+
+function OnPlayerPullWinchStop(playerId)
+    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].playersWinch ~= nil then
+        playerData[playerId].isPulling = false
+    end
+end
+
+function OnPlayerExtendWinchStop(playerId)
+    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].playersWinch ~= nil then
+        playerData[playerId].isExtending = false
+    end
+end
+
+function OnOpenCloseChat(playerId)
+    playerData[playerId].chatOpen = not playerData[playerId].chatOpen
+end
+
+--#endregion
