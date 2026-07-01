@@ -8,14 +8,21 @@ local spawnedObjects = {}
 
 function PlayerUpdate(player)
     local playerDataTable = playerData[player.playerId]
+
     if playerDataTable.playersWinch ~= nil then
         playerDataTable.playersWinch:update()
         if playerDataTable.isPulling then
             playerDataTable.playersWinch:pull()
+            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Pulling Winch" ..string.rep(".",(math.floor(tm.os.GetRealtimeSinceStartup()) % 4)))
         elseif playerDataTable.isExtending then
             playerDataTable.playersWinch:extend()
+            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Extending Winch" ..string.rep(".",(math.floor(tm.os.GetRealtimeSinceStartup()) % 4)))
+        else
+            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Winch connected.")
         end
+        tm.playerUI.SubtleMessageUpdateMessageForPlayer(player.playerId, playerDataTable.infoBox, "length: ".. string.format("%.2f", playerDataTable.playersWinch.length).."m")
     elseif playerDataTable.connectingWinch then
+        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Select a connection point.")
         for point, visualizer in pairs(playerDataTable.connectionPoints) do
             local pointPos
             if point.ToString() == "Trailmakers.Mods.Api.Proxies.ModBlock"then
@@ -37,6 +44,7 @@ end
 
 function OnPlayerAttachDetachWinch(playerId)
     if playerData[playerId].chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     if playerData[playerId].playersWinch ~= nil then
         playerData[playerId].playersWinch:remove()
@@ -139,7 +147,7 @@ end
 function OnPlayerJoined(player)
     local playerId = player.playerId
     local spawnPosition = tm.players.GetPlayerTransform(playerId).GetPositionWorld() + tm.vector3.Create(0, 4, 0)
-    table.insert(spawnedObjects, tm.physics.SpawnCustomObjectRigidbody(spawnPosition, "ropeModel", "ropeTexture", false, 1, "Asphalt"))
+    table.insert(spawnedObjects, tm.physics.SpawnCustomObjectRigidbody(spawnPosition, "ropeModel", "ropeTexture", false, 0.7, "Asphalt"))
     playerData[playerId] = {
         playersWinch = nil,
         isExtending = false,
@@ -150,7 +158,9 @@ function OnPlayerJoined(player)
         connectionPoints = {},
         selectedConnectionPoint = nil,
         chatOpen = false,
+        infoBox = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch Mod is enabled.", "press 'V' to start winching.", math.huge)
     }
+
     tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
 
     tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnOpenCloseChat", "enter")
@@ -246,11 +256,15 @@ end
 
 function OnPlayerPlaceRemoveAnchor(playerId)
     if playerData[playerId].chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+
     playerData[playerId].placingAnchor = not playerData[playerId].placingAnchor
 end
 
 function OnPlayerPullWinchStart(playerId)
     if playerData[playerId].chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+
     if playerData[playerId].playersWinch ~= nil then
         playerData[playerId].isPulling = true
     end
@@ -258,6 +272,8 @@ end
 
 function OnPlayerExtendWinchStart(playerId)
     if playerData[playerId].chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+
     if playerData[playerId].playersWinch ~= nil then
         playerData[playerId].isExtending = true
     end
@@ -265,6 +281,8 @@ end
 
 function OnPlayerPullWinchStop(playerId)
     if playerData[playerId].chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+
     if playerData[playerId].playersWinch ~= nil then
         playerData[playerId].isPulling = false
     end
@@ -272,6 +290,8 @@ end
 
 function OnPlayerExtendWinchStop(playerId)
     if playerData[playerId].chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+
     if playerData[playerId].playersWinch ~= nil then
         playerData[playerId].isExtending = false
     end

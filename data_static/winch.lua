@@ -6,6 +6,7 @@
 ---@field strength number value by which the magnitude of the force will be calculated
 ---@field elasticity number percentage at which the connection will snap
 ---@field ropeObject ModGameObject
+---@field targetType string
 local Winch = {}
 Winch.CONNECTION_POINT = {
     ATTACHABLE_BlOCKS = {"PFB_TubeThing [Server]"},
@@ -31,9 +32,17 @@ function Winch.new(origin, target, strength, elasticity)
     self.target = target
     self.strength = strength or Winch.DEFAULT_STRENGTH
     self.elasticity = elasticity or Winch.DEFAULT_ELASTICITY
+    self.targetType = target.ToString()
+
 
     local originPos = origin.GetPosition()
-    local targetPos = self._getTargetPos(target)
+
+    local targetPos
+    if self.targetType == "Trailmakers.Mods.Api.Proxies.ModBlock" then
+        targetPos = target.GetPosition()
+    elseif self.targetType == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
+        targetPos = target.GetTransform().GetPositionWorld()
+    end
     self.length = tm.vector3.Distance(originPos, targetPos)
     return self
 end
@@ -82,12 +91,10 @@ end
 
 function Winch:pull()
     self.length = self.length - (self.SPEED * tm.os.GetModDeltaTime())
-    tm.os.Log("pulling")
 end
 
 function Winch:extend()
     self.length = self.length + (self.SPEED * tm.os.GetModDeltaTime())
-    tm.os.Log("extending")
 end
 
 ---@param stretchedDistance number
@@ -103,17 +110,13 @@ end
 
 function Winch:remove()
     self.ropeObject.Despawn()
-    self = nil
 end
 
----@param target ModGameObject|ModBlock|nil
-function Winch:_getTargetPos(target)
-    target = target or self.target
-    local targetType = target.ToString()
-    if targetType == "Trailmakers.Mods.Api.Proxies.ModBlock" then
-        return target.GetPosition()
-    elseif targetType == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
-        return target.GetTransform().GetPositionWorld()
+function Winch:_getTargetPos()
+    if self.targetType == "Trailmakers.Mods.Api.Proxies.ModBlock" then
+        return self.target.GetPosition()
+    elseif self.targetType == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
+        return self.target.GetTransform().GetPositionWorld()
     end
 end
 

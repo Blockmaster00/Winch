@@ -27,7 +27,6 @@ end
 
 function Anchor:remove()
     self.object.Despawn()
-    self = nil
 end
 
 return Anchor
