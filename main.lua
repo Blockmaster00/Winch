@@ -106,8 +106,8 @@ function SelectConnectionPoint(playerId, position)
         playerData[playerId].connectionPoints = {}
 
         local playerStructure = tm.players.OccupiedStructure(playerId)
-        if playerStructure == nil then return end
-        local connectionPoints = GetAllConnectionPointsInRange(playerStructure.GetPosition(), 50, { playerStructure })
+        local connectionPoints = GetAllConnectionPointsInRange(
+        GetConnectionPointPosition(playerData[playerId.selectedConnectionPoint]), 50, { playerStructure })
 
         for key, connectionPoint in ipairs(connectionPoints) do
             local pos = GetConnectionPointPosition(connectionPoint)
