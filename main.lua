@@ -1,4 +1,4 @@
-tm.os.SetModTargetDeltaTime(1/60)
+tm.os.SetModTargetDeltaTime(1 / 60)
 
 local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
@@ -13,23 +13,22 @@ function PlayerUpdate(player)
         playerDataTable.playersWinch:update()
         if playerDataTable.isPulling then
             playerDataTable.playersWinch:pull()
-            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Pulling Winch" ..string.rep(".",(math.floor(tm.os.GetRealtimeSinceStartup()) % 4)))
+            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox,
+                "Pulling Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup()) % 4)))
         elseif playerDataTable.isExtending then
             playerDataTable.playersWinch:extend()
-            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Extending Winch" ..string.rep(".",(math.floor(tm.os.GetRealtimeSinceStartup()) % 4)))
+            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox,
+                "Extending Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup()) % 4)))
         else
             tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Winch connected.")
         end
-        tm.playerUI.SubtleMessageUpdateMessageForPlayer(player.playerId, playerDataTable.infoBox, "length: ".. string.format("%.2f", playerDataTable.playersWinch.length).."m")
+        tm.playerUI.SubtleMessageUpdateMessageForPlayer(player.playerId, playerDataTable.infoBox,
+            "length: " .. string.format("%.2f", playerDataTable.playersWinch.length) .. "m")
     elseif playerDataTable.connectingWinch then
-        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Select a connection point.")
+        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox,
+            "Select a connection point.")
         for point, visualizer in pairs(playerDataTable.connectionPoints) do
-            local pointPos
-            if point.ToString() == "Trailmakers.Mods.Api.Proxies.ModBlock"then
-                pointPos = point.GetPosition()
-            else
-                pointPos = point.GetTransform().GetPositionWorld()
-            end
+            local pointPos = GetConnectionPointPosition(point)
             visualizer.GetTransform().SetPosition(pointPos)
         end
     end
@@ -85,13 +84,7 @@ function SelectConnectionPoint(playerId, position)
         distance = math.huge
     }
     for point, visualizer in pairs(playerData[playerId].connectionPoints) do
-        local pointPos
-        if point.ToString() == "Trailmakers.Mods.Api.Proxies.ModBlock"then
-            pointPos = point.GetPosition()
-        else
-            pointPos = point.GetTransform().GetPositionWorld()
-        end
-
+        local pointPos = GetConnectionPointPosition(point)
         local distanceToPoint = tm.vector3.Distance(pointPos, position)
         if distanceToPoint <= 10 and distanceToPoint < closest.distance then
             closest = {
@@ -113,16 +106,12 @@ function SelectConnectionPoint(playerId, position)
         playerData[playerId].connectionPoints = {}
 
         local playerStructure = tm.players.OccupiedStructure(playerId)
-        local connectionPoints = GetAllConnectionPointsInRange(playerStructure.GetPosition(), 50, {playerStructure})
+        if playerStructure == nil then return end
+        local connectionPoints = GetAllConnectionPointsInRange(playerStructure.GetPosition(), 50, { playerStructure })
 
         for key, connectionPoint in ipairs(connectionPoints) do
-            local pos
-            if connectionPoint.ToString() == "Trailmakers.Mods.Api.Proxies.ModBlock"then
-                pos = connectionPoint.GetPosition()
-            else
-                pos = connectionPoint.GetTransform().GetPositionWorld()
-            end
-            local visualizer = tm.physics.SpawnObject(pos , Winch.CONNECTION_POINT.PREFAB)
+            local pos = GetConnectionPointPosition(connectionPoint)
+            local visualizer = tm.physics.SpawnObject(pos, Winch.CONNECTION_POINT.PREFAB)
             visualizer.GetTransform().SetScale(Winch.CONNECTION_POINT.SCALE)
             visualizer.SetIsStatic(true)
             visualizer.SetIsTrigger(true)
@@ -148,7 +137,8 @@ end
 function OnPlayerJoined(player)
     local playerId = player.playerId
     local spawnPosition = tm.players.GetPlayerTransform(playerId).GetPositionWorld() + tm.vector3.Create(0, 4, 0)
-    table.insert(spawnedObjects, tm.physics.SpawnCustomObjectRigidbody(spawnPosition, "ropeModel", "ropeTexture", false, 0.7, "Asphalt"))
+    table.insert(spawnedObjects,
+        tm.physics.SpawnCustomObjectRigidbody(spawnPosition, "ropeModel", "ropeTexture", false, 0.7, "Asphalt"))
     playerData[playerId] = {
         playersWinch = nil,
         isExtending = false,
@@ -159,7 +149,8 @@ function OnPlayerJoined(player)
         connectionPoints = {},
         selectedConnectionPoint = nil,
         chatOpen = false,
-        infoBox = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch Mod is enabled.", "press 'V' to start winching.", math.huge)
+        infoBox = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch Mod is enabled.", "press 'V' to start winching.",
+            math.huge)
     }
 
     tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
@@ -172,8 +163,8 @@ function OnPlayerJoined(player)
     tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnPlayerExtendWinchStart", "e")
     tm.input.RegisterFunctionToKeyUpCallback(playerId, "OnPlayerPullWinchStop", "q")
     tm.input.RegisterFunctionToKeyUpCallback(playerId, "OnPlayerExtendWinchStop", "e")
-
 end
+
 tm.players.OnPlayerJoined.add(OnPlayerJoined)
 
 function GetAllConnectionPointsInRange(pos, range, excludedStructures)
@@ -219,6 +210,16 @@ function Normalize(v)
     end
 end
 
+---@param point ModBlock|ModGameObject
+function GetConnectionPointPosition(point)
+    local point_type = point.ToString()
+    if point_type == "Trailmakers.Mods.Api.Proxies.ModBlock" then
+        return point.GetPosition()
+    elseif point_type == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
+        return point.GetTransform().GetPositionWorld()
+    end
+end
+
 function TargetRot(PosHun, PosTar)
     local relativeX = PosTar.x - PosHun.x
     local relativeY = -PosTar.y + PosHun.y
@@ -248,7 +249,7 @@ end
 function OnWinchSnap(callback)
     local playerId = callback.playerId
     local stretchedDistance = callback.stretchedDistance
-    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch snapped!.", "stretched distance: ".. stretchedDistance, 5)
+    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch snapped!.", "stretched distance: " .. stretchedDistance, 5)
     playerData[playerId].playersWinch = nil
 end
 
