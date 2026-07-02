@@ -101,7 +101,13 @@ end
 ---@return boolean
 function Winch:hasSnapped(stretchedDistance)
     if stretchedDistance > self.length *  (1 + (self.elasticity / 100)) then
-        -- implement Callback functions for OnSnap?
+        if self.OnSnapCallback ~= nil then
+            local callbackData = {
+                playerId = self.playerId,
+                stretchedDistance = stretchedDistance
+            }
+            self.OnSnapCallback(callbackData)
+        end
         self:remove()
         return true
     end
@@ -118,6 +124,11 @@ function Winch:_getTargetPos()
     elseif self.targetType == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
         return self.target.GetTransform().GetPositionWorld()
     end
+end
+
+function Winch:AddOnSnapCallback(playerId, callbackFunction)
+    self.playerId = playerId
+    self.OnSnapCallback = callbackFunction
 end
 
 return Winch

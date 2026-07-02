@@ -130,6 +130,7 @@ function SelectConnectionPoint(playerId, position)
         end
     else
         playerData[playerId].playersWinch = Winch.new(playerData[playerId].selectedConnectionPoint, closest.point)
+        playerData[playerId].playersWinch.AddOnSnapCallback(playerId, OnWinchSnap)
         playerData[playerId].connectingWinch = false
         for block, visualizer in pairs(playerData[playerId].connectionPoints) do
             visualizer.Despawn()
@@ -244,6 +245,13 @@ function TableContains(table, value)
 end
 
 --#region PlayerCallback
+function OnWinchSnap(callback)
+    local playerId = callback.playerId
+    local stretchedDistance = callback.stretchedDistance
+    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch snapped!.", "stretched distance: ".. stretchedDistance, 5)
+    playerData[playerId].playersWinch = nil
+end
+
 function OnPlayerClick(callback)
     local playerId = callback.playerId
     local position = tm.vector3.Create(callback.value)
