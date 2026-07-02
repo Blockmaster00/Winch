@@ -1,5 +1,7 @@
 tm.os.SetModTargetDeltaTime(1 / 60)
 
+tm.physics.AddTexture("assets/Winch_Icon.png", "WinchIcon")
+
 local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
 
@@ -159,7 +161,7 @@ function OnPlayerJoined(player)
         selectedConnectionPoint = nil,
         chatOpen = false,
         infoBox = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch Mod is enabled.", "press 'V' to start winching.",
-            math.huge)
+            math.huge, "Winch_Icon")
     }
 
     tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
