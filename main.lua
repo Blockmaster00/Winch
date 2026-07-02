@@ -129,8 +129,17 @@ function SelectConnectionPoint(playerId, position)
     end
 end
 
-function PlaceAnchor(playerId, position)
-    local anchor = Anchor.new(position)
+function PlaceAnchor(playerId, hitPosition)
+    local playerPos = tm.players.GetPlayerTransform(playerId).GetPositionWorld()
+    local hitDirection = Normalize(playerPos - hitPosition)
+    -- start raycast just infront of hit position to get hit normal
+    local raycastStartPos = hitPosition - (hitDirection * 0.1)
+    local raycastHit = tm.physics.RaycastData(raycastStartPos, hitDirection, 1, true)
+    if not raycastHit.DidHit() then return end
+    local hitNormal = raycastHit.GetHitNormal()
+    local rotation = QuaternionFromToRotation(tm.vector3.Forward(), hitNormal)
+
+    local anchor = Anchor.new(hitPosition, rotation)
     table.insert(spawnedObjects, anchor.object)
 end
 
@@ -218,6 +227,27 @@ function GetConnectionPointPosition(point)
     elseif point_type == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
         return point.GetTransform().GetPositionWorld()
     end
+end
+
+-- AI Function to turn direction vector into rotation quaternion
+function QuaternionFromToRotation(from, to)
+    from = Normalize(from)
+    to = Normalize(to)
+    local d = from.Dot(to)
+    -- Handle opposite vectors (180 degrees)
+    if d < -1 + 1e-6 then
+        local axis = tm.vector3.Right().Cross(from)
+        if axis.Magnitude() < 1e-6 then
+            axis = tm.vector3.Forward().Cross(from)
+        end
+        axis = Normalize(axis)
+        return tm.quaternion.Create(axis.x, axis.y, axis.z, 0)
+    end
+    -- Standard rotation calculation
+    local s = math.sqrt((1 + d) * 2)
+    local invs = 1 / s
+    local c = from.Cross(to)
+    return tm.quaternion.Create(c.x * invs, c.y * invs, c.z * invs, s * 0.5)
 end
 
 function TargetRot(PosHun, PosTar)

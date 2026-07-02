@@ -1,4 +1,3 @@
-
 ---@class Winch
 ---@field origin ModBlock
 ---@field target ModBlock|ModGameObject
@@ -9,10 +8,10 @@
 ---@field targetType string
 local Winch = {}
 Winch.CONNECTION_POINT = {
-    ATTACHABLE_BlOCKS = {"PFB_TubeThing [Server]"},
+    ATTACHABLE_BlOCKS = { "PFB_TubeThing [Server]" },
     PREFAB = "PFB_MovePuzzleBall",
     SCALE = tm.vector3.Create(0.3, 0.3, 0.3)
-    }
+}
 Winch.MODEL = "ropeModel"
 Winch.TEXTURE = "ropeTexture"
 Winch.DEFAULT_STRENGTH = 20
@@ -27,7 +26,7 @@ tm.physics.AddTexture("assets/Winch.png", Winch.TEXTURE)
 ---@param strength number|nil
 ---@param elasticity number|nil
 function Winch.new(origin, target, strength, elasticity)
-    local self = setmetatable({}, {__index = Winch})
+    local self = setmetatable({}, { __index = Winch })
     self.origin = origin
     self.target = target
     self.strength = strength or Winch.DEFAULT_STRENGTH
@@ -100,7 +99,7 @@ end
 ---@param stretchedDistance number
 ---@return boolean
 function Winch:hasSnapped(stretchedDistance)
-    if stretchedDistance > self.length *  (1 + (self.elasticity / 100)) then
+    if stretchedDistance > self.length * (1 + (self.elasticity / 100)) then
         if self.OnSnapCallback ~= nil then
             local callbackData = {
                 playerId = self.playerId,
