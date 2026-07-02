@@ -1,7 +1,7 @@
 
 ---@class Anchor
 ---@field object ModGameObject
-Anchor = {}
+local Anchor = {}
 Anchor.MODEL = "AnchorModel"
 Anchor.TEXTURE = "AnchorTexture"
 tm.physics.AddMesh("assets/Anchor.obj", Anchor.MODEL)
@@ -12,7 +12,7 @@ tm.physics.AddTexture("assets/Anchor.png", Anchor.TEXTURE)
 ---@param rotation ModVector3 | nil
 function Anchor.new(pos, rotation)
     local self = setmetatable({}, {__index = Anchor})
-    self.position = pos
+    self.position = pos --offset position up relative to surface normal. (since Anchor mesh has its pivot point at the top of the model)
     self.rotation = rotation or nil
 
     if self.rotation == nil then
