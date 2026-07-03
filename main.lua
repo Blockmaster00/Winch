@@ -1,6 +1,6 @@
 tm.os.SetModTargetDeltaTime(1 / 60)
 
-tm.physics.AddTexture("assets/Winch_Icon.png", "WinchIcon")
+tm.physics.AddTexture("assets/Winch_Icon.png", "Winch_Icon")
 
 local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
@@ -10,17 +10,18 @@ local spawnedObjects = {}
 
 function PlayerUpdate(player)
     local playerDataTable = playerData[player.playerId]
+    if tm.players.GetPlayerIsInBuildMode(player.playerId) then return end
 
     if playerDataTable.playersWinch ~= nil then
         playerDataTable.playersWinch:update()
         if playerDataTable.isPulling then
             playerDataTable.playersWinch:pull()
             tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox,
-                "Pulling Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup()) % 4)))
+                "Pulling Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup() * 2) % 4)))
         elseif playerDataTable.isExtending then
             playerDataTable.playersWinch:extend()
             tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox,
-                "Extending Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup()) % 4)))
+                "Extending Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup() * 2) % 4)))
         else
             tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Winch connected.")
         end
@@ -121,7 +122,7 @@ function SelectConnectionPoint(playerId, position)
         end
     else
         playerData[playerId].playersWinch = Winch.new(playerData[playerId].selectedConnectionPoint, closest.point)
-        playerData[playerId].playersWinch.AddOnSnapCallback(playerId, OnWinchSnap)
+        playerData[playerId].playersWinch:AddOnSnapCallback(playerId, OnWinchSnap)
         playerData[playerId].connectingWinch = false
         for block, visualizer in pairs(playerData[playerId].connectionPoints) do
             visualizer.Despawn()
@@ -139,9 +140,8 @@ function PlaceAnchor(playerId, hitPosition)
     local raycastHit = tm.physics.RaycastData(raycastStartPos, hitDirection, 1, true)
     if not raycastHit.DidHit() then return end
     local hitNormal = raycastHit.GetHitNormal()
-    local rotation = QuaternionFromToRotation(tm.vector3.Forward(), hitNormal)
 
-    local anchor = Anchor.new(hitPosition, rotation)
+    local anchor = Anchor.new(hitPosition, hitNormal)
     table.insert(spawnedObjects, anchor.object)
 end
 
@@ -281,13 +281,17 @@ end
 function OnWinchSnap(callback)
     local playerId = callback.playerId
     local stretchedDistance = callback.stretchedDistance
-    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch snapped!.", "stretched distance: " .. stretchedDistance, 5)
+    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch snapped!.",
+        "stretched distance: " .. string.format("%.2f", stretchedDistance), 5)
     playerData[playerId].playersWinch = nil
 end
 
 function OnPlayerClick(callback)
     local playerId = callback.playerId
     local position = tm.vector3.Create(callback.value)
+    if playerData[playerId].chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+
     if playerData[playerId].connectingWinch then
         SelectConnectionPoint(playerId, position)
     elseif playerData[playerId].placingAnchor then

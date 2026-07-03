@@ -66,7 +66,7 @@ function Winch:_visualize(originPos, targetPos, ropeLength)
         self.ropeObject.SetIsTrigger(true)
     end
     self.ropeObject.GetTransform().SetPosition(ropePos)
-    self.ropeObject.GetTransform().SetScale(0.1, 0.1, ropeLength)
+    self.ropeObject.GetTransform().SetScale(0.2, 0.2, ropeLength)
     self.ropeObject.GetTransform().SetRotation(ropeRotation)
 end
 
