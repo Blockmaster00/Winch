@@ -14,8 +14,8 @@ Winch.CONNECTION_POINT = {
 }
 Winch.MODEL = "ropeModel"
 Winch.TEXTURE = "ropeTexture"
-Winch.DEFAULT_STRENGTH = 20
-Winch.DEFAULT_ELASTICITY = 30
+Winch.DEFAULT_STRENGTH = 10
+Winch.DEFAULT_ELASTICITY = 150
 Winch.SPEED = 1
 tm.physics.AddMesh("assets/Winch.obj", Winch.MODEL)
 tm.physics.AddTexture("assets/Winch.png", Winch.TEXTURE)
@@ -66,7 +66,7 @@ function Winch:_visualize(originPos, targetPos, ropeLength)
         self.ropeObject.SetIsTrigger(true)
     end
     self.ropeObject.GetTransform().SetPosition(ropePos)
-    self.ropeObject.GetTransform().SetScale(0.2, 0.2, ropeLength)
+    self.ropeObject.GetTransform().SetScale(0.3, 0.3, ropeLength)
     self.ropeObject.GetTransform().SetRotation(ropeRotation)
 end
 
@@ -99,7 +99,7 @@ end
 ---@param stretchedDistance number
 ---@return boolean
 function Winch:hasSnapped(stretchedDistance)
-    if stretchedDistance > self.length * (1 + (self.elasticity / 100)) then
+    if stretchedDistance > self.length * (self.elasticity / 100) then
         if self.OnSnapCallback ~= nil then
             local callbackData = {
                 playerId = self.playerId,

@@ -5,7 +5,29 @@ tm.physics.AddTexture("assets/Winch_Icon.png", "Winch_Icon")
 local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
 
+local COLORS = {
+    GREEN = "<color=" .. "#C7D66D" .. ">",
+    RED = "<color=" .. "#F78764" .. ">",
+    BLUE = "<color=" .. "#69d9d8" .. ">",
+    PURPLE = "<color=" .. "#6A5B6E" .. ">",
+}
+
+local KEYBINDS = {
+    ["`"] = true, ["1"] = true, ["2"] = true, ["3"] = true, ["4"] = true, ["5"] = true, ["6"] = true, ["7"] = true, ["8"] = true, ["9"] = true, ["0"] = true, ["-"] = true, ["="] = true,
+    ["a"] = true, ["b"] = true, ["c"] = true, ["d"] = true, ["e"] = true, ["f"] = true, ["g"] = true, ["h"] = true, ["i"] = true, ["j"] = true, ["k"] = true, ["l"] = true, ["m"] = true, ["n"] = true, ["o"] = true, ["p"] = true, ["q"] = true, ["r"] = true, ["s"] = true, ["t"] = true, ["u"] = true, ["v"] = true, ["w"] = true, ["x"] = true, ["y"] = true, ["z"] = true,
+    ["A"] = true, ["B"] = true, ["C"] = true, ["D"] = true, ["E"] = true, ["F"] = true, ["G"] = true, ["H"] = true, ["I"] = true, ["J"] = true, ["K"] = true, ["L"] = true, ["M"] = true, ["N"] = true, ["O"] = true, ["P"] = true, ["Q"] = true, ["R"] = true, ["S"] = true, ["T"] = true, ["U"] = true, ["V"] = true, ["W"] = true, ["X"] = true, ["Y"] = true, ["Z"] = true,
+    ["["] = true, ["]"] = true, [";"] = true, ["'"] = true, ["\\"] = true, [","] = true, ["."] = true, ["/"] = true,
+    ["backspace"] = true, ["tab"] = true, ["enter"] = true, ["left shift"] = true, ["right shift"] = true, ["left control"] = true, ["left alt"] = true, ["space"] = true, ["right alt"] = true, ["right control"] = true,
+    ["insert"] = true, ["home"] = true, ["page up"] = true, ["delete"] = true, ["end"] = true, ["page down"] = true, ["up"] = true, ["down"] = true, ["left"] = true, ["right"] = true,
+    ["numlock"] = true, ["[/]"] = true, ["[*]"] = true, ["[-]"] = true, ["[+]"] = true, ["[enter]"] = true, ["[,]"] = true, ["[1]"] = true, ["[2]"] = true, ["[3]"] = true, ["[4]"] = true, ["[5]"] = true, ["[6]"] = true, ["[7]"] = true, ["[8]"] = true, ["[9]"] = true, ["[0]"] = true,
+}
+
 local playerData = {}
+local sessionSettings = {
+    maxInventorySlots = 4,
+    -- maxWinchLength
+}
+
 local spawnedObjects = {}
 
 function PlayerUpdate(player)
@@ -110,7 +132,7 @@ function SelectConnectionPoint(playerId, position)
 
         local playerStructure = tm.players.OccupiedStructure(playerId)
         local connectionPoints = GetAllConnectionPointsInRange(
-            GetConnectionPointPosition(playerData[playerId.selectedConnectionPoint]), 50, { playerStructure })
+            GetConnectionPointPosition(playerData[playerId].selectedConnectionPoint), 50, { playerStructure })
 
         for key, connectionPoint in ipairs(connectionPoints) do
             local pos = GetConnectionPointPosition(connectionPoint)
@@ -134,7 +156,7 @@ end
 
 function PlaceAnchor(playerId, hitPosition)
     local playerPos = tm.players.GetPlayerTransform(playerId).GetPositionWorld()
-    local hitDirection = Normalize(playerPos - hitPosition)
+    local hitDirection = Normalize(hitPosition - playerPos)
     -- start raycast just infront of hit position to get hit normal
     local raycastStartPos = hitPosition - (hitDirection * 0.1)
     local raycastHit = tm.physics.RaycastData(raycastStartPos, hitDirection, 1, true)
@@ -145,13 +167,73 @@ function PlaceAnchor(playerId, hitPosition)
     table.insert(spawnedObjects, anchor.object)
 end
 
+function UpdateUi(playerId, uiPage)
+    local uiPages = {
+        ["main"] = function(playerId)
+            DrawMainMenu(playerId)
+        end,
+        ["settings"] = function(playerId)
+            DrawSettings(playerId)
+        end,
+        ["keybinds"] = function(playerId)
+            DrawKeybindSettings(playerId)
+        end,
+        ["loadout"] = function(playerId)
+            DrawLoadout(playerId)
+        end
+    }
+    if uiPages[uiPage] then
+        playerData[playerId].ui.page = uiPage
+        tm.playerUI.ClearUI(playerId)
+        uiPages[uiPage](playerId)
+    else
+        tm.os.Log("Invalid uiPage: " .. uiPage)
+    end
+end
+
 function OnPlayerJoined(player)
     local playerId = player.playerId
-    local spawnPosition = tm.players.GetPlayerTransform(playerId).GetPositionWorld() + tm.vector3.Create(0, 4, 0)
-    table.insert(spawnedObjects,
-        tm.physics.SpawnCustomObjectRigidbody(spawnPosition, "ropeModel", "ropeTexture", false, 0.7, "Asphalt"))
+
     playerData[playerId] = {
-        playersWinch = nil,
+        inventory = {
+            -- winch 1
+            -- winch 2
+            -- anchor 1
+            -- anchor 2
+        },
+        input = {
+            isExtending = false,
+            isPulling = false,
+            chatOpen = false,
+        },
+        ui = {
+            page = "main", -- "settings"|"help"
+            inventoryBoxId = nil,
+        },
+        settings = {    -- some settings per winch? Default winch values get stored in here
+            keybinds = {
+                winch ={
+                    extend = "up",
+                    pull = "down",
+                },
+                inventory = {
+                    left = "left",
+                    right = "right",
+                    useItem = "v",
+                    openClose = "i"
+                }
+            },
+            defaultWinch = {
+                strength = Winch.DEFAULT_STRENGTH,
+                elasticity = Winch.DEFAULT_ELASTICITY,
+                speed = Winch.SPEED
+            }
+        }
+    }
+    UpdateUi(playerId, "main")
+    --[[
+    playerData[playerId] = {
+        winches = nil,
         isExtending = false,
         isPulling = false,
         placingAnchor = false,
@@ -163,6 +245,7 @@ function OnPlayerJoined(player)
         infoBox = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch Mod is enabled.", "press 'V' to start winching.",
             math.huge, "Winch_Icon")
     }
+    ]]--
 
     tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
 
@@ -275,6 +358,120 @@ function TableContains(table, value)
         end
     end
     return false
+end
+
+--#region UI 
+local btnReturn = "<b><color=#69d9d8>↩️ Return </color></b>"
+
+function DrawMainMenu(playerId)
+    tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Main Menu -~")
+    tm.playerUI.AddUIButton(playerId, "btnSettings", COLORS.BLUE .. "Settings" .. "</color>",
+        function() UpdateUi(playerId, "settings") end)
+    tm.playerUI.AddUIButton(playerId, "btnLoadout", COLORS.GREEN .. "Loadout" .. "</color>",
+        function() UpdateUi(playerId, "loadout") end)
+
+    tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
+
+    tm.playerUI.AddUILabel(playerId, "lblCredit1", "Made with love ❤️")
+    tm.playerUI.AddUILabel(playerId, "lblCredit2", "<color=#BEAED5>by Blockhampter</color>")
+
+end
+
+function DrawSettings(playerId)
+    local settings = playerData[playerId].settings
+    tm.playerUI.AddUIButton(playerId, "btnReturn", btnReturn, function() UpdateUi(playerId, "main") end)
+    tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Settings -~")
+
+    tm.playerUI.AddUIButton(playerId, "btnKeybinds", COLORS.BLUE .. "Keybinds" .. "</color>",
+        function() UpdateUi(playerId, "keybinds") end)
+
+    tm.playerUI.AddUILabel(playerId, "lblWinchHeading", "- default winch settings -")
+    tm.playerUI.AddUILabel(playerId, "lblWinchStrength", "Strength:")
+    tm.playerUI.AddUIText(playerId, "txtWinchStrength", settings.defaultWinch.strength, function(UICallbackData)
+        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 1 then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+            return
+        end
+        settings.defaultWinch.strength = tonumber(UICallbackData.value)
+    end)
+    tm.playerUI.AddUILabel(playerId, "lblWinchElasticity", "Elasticity:")
+    tm.playerUI.AddUIText(playerId, "txtWinchElasticity", settings.defaultWinch.elasticity, function(UICallbackData)
+        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 1 then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+            return
+        end
+        settings.defaultWinch.elasticity = tonumber(UICallbackData.value)
+    end)
+    tm.playerUI.AddUILabel(playerId, "lblWinchSpeed", "Speed:")
+    tm.playerUI.AddUIText(playerId, "txtWinchSpeed", settings.defaultWinch.speed, function(UICallbackData)
+        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 1 then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+            return
+        end
+        settings.defaultWinch.speed = tonumber(UICallbackData.value)
+    end)
+
+    tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
+end
+
+function DrawKeybindSettings(playerId)
+    local keybinds = playerData[playerId].settings.keybinds
+    tm.playerUI.AddUIButton(playerId, "btnReturn", btnReturn, function() UpdateUi(playerId, "settings") end)
+    tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Keybinds -~")
+
+
+    tm.playerUI.AddUILabel(playerId, "lblWinchHeading", "- winch -")
+    tm.playerUI.AddUILabel(playerId, "lblWinchExtend", "Extend:")
+    tm.playerUI.AddUIText(playerId, "txtWinchExtend", keybinds.winch.extend, function(UICallbackData)
+        if UICallbackData.value == nil or not KEYBINDS[UICallbackData.value] then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            return
+        end
+        keybinds.winch.extend = UICallbackData.value
+    end)
+    tm.playerUI.AddUILabel(playerId, "lblWinchPull", "Pull:")
+    tm.playerUI.AddUIText(playerId, "txtWinchPull", keybinds.winch.pull, function(UICallbackData)
+        if UICallbackData.value == nil or not KEYBINDS[UICallbackData.value] then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            return
+        end
+        keybinds.winch.pull = UICallbackData.value
+    end)
+    tm.playerUI.AddUILabel(playerId, "lblInventoryHeading", "- inventory -")
+    tm.playerUI.AddUILabel(playerId, "lblInventoryLeft", "Left:")
+    tm.playerUI.AddUIText(playerId, "txtInventoryLeft", keybinds.inventory.left, function(UICallbackData)
+        if UICallbackData.value == nil or not KEYBINDS[UICallbackData.value] then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            return
+        end
+        keybinds.inventory.left = UICallbackData.value
+    end)
+    tm.playerUI.AddUILabel(playerId, "lblInventoryRight", "Right:")
+    tm.playerUI.AddUIText(playerId, "txtInventoryRight", keybinds.inventory.right, function(UICallbackData)
+        if UICallbackData.value == nil or not KEYBINDS[UICallbackData.value] then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            return
+        end
+        keybinds.inventory.right = UICallbackData.value
+    end)
+    tm.playerUI.AddUILabel(playerId, "lblInventoryUseItem", "Use Item:")
+    tm.playerUI.AddUIText(playerId, "txtInventoryUseItem", keybinds.inventory.useItem, function(UICallbackData)
+        if UICallbackData.value == nil or not KEYBINDS[UICallbackData.value] then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            return
+        end
+        keybinds.inventory.useItem = UICallbackData.value
+    end)
+    tm.playerUI.AddUILabel(playerId, "lblInventoryOpenClose", "Open/Close:")
+    tm.playerUI.AddUIText(playerId, "txtInventoryOpenClose", keybinds.inventory.openClose, function(UICallbackData)
+        if UICallbackData.value == nil or not KEYBINDS[UICallbackData.value] then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            return
+        end
+        keybinds.inventory.openClose = UICallbackData.value
+    end)
+
+    tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
 end
 
 --#region PlayerCallback
