@@ -13,20 +13,122 @@ local COLORS = {
 }
 
 local KEYBINDS = {
-    ["`"] = true, ["1"] = true, ["2"] = true, ["3"] = true, ["4"] = true, ["5"] = true, ["6"] = true, ["7"] = true, ["8"] = true, ["9"] = true, ["0"] = true, ["-"] = true, ["="] = true,
-    ["a"] = true, ["b"] = true, ["c"] = true, ["d"] = true, ["e"] = true, ["f"] = true, ["g"] = true, ["h"] = true, ["i"] = true, ["j"] = true, ["k"] = true, ["l"] = true, ["m"] = true, ["n"] = true, ["o"] = true, ["p"] = true, ["q"] = true, ["r"] = true, ["s"] = true, ["t"] = true, ["u"] = true, ["v"] = true, ["w"] = true, ["x"] = true, ["y"] = true, ["z"] = true,
-    ["A"] = true, ["B"] = true, ["C"] = true, ["D"] = true, ["E"] = true, ["F"] = true, ["G"] = true, ["H"] = true, ["I"] = true, ["J"] = true, ["K"] = true, ["L"] = true, ["M"] = true, ["N"] = true, ["O"] = true, ["P"] = true, ["Q"] = true, ["R"] = true, ["S"] = true, ["T"] = true, ["U"] = true, ["V"] = true, ["W"] = true, ["X"] = true, ["Y"] = true, ["Z"] = true,
-    ["["] = true, ["]"] = true, [";"] = true, ["'"] = true, ["\\"] = true, [","] = true, ["."] = true, ["/"] = true,
-    ["backspace"] = true, ["tab"] = true, ["enter"] = true, ["left shift"] = true, ["right shift"] = true, ["left control"] = true, ["left alt"] = true, ["space"] = true, ["right alt"] = true, ["right control"] = true,
-    ["insert"] = true, ["home"] = true, ["page up"] = true, ["delete"] = true, ["end"] = true, ["page down"] = true, ["up"] = true, ["down"] = true, ["left"] = true, ["right"] = true,
-    ["numlock"] = true, ["[/]"] = true, ["[*]"] = true, ["[-]"] = true, ["[+]"] = true, ["[enter]"] = true, ["[,]"] = true, ["[1]"] = true, ["[2]"] = true, ["[3]"] = true, ["[4]"] = true, ["[5]"] = true, ["[6]"] = true, ["[7]"] = true, ["[8]"] = true, ["[9]"] = true, ["[0]"] = true,
+    ["`"] = true,
+    ["1"] = true,
+    ["2"] = true,
+    ["3"] = true,
+    ["4"] = true,
+    ["5"] = true,
+    ["6"] = true,
+    ["7"] = true,
+    ["8"] = true,
+    ["9"] = true,
+    ["0"] = true,
+    ["-"] = true,
+    ["="] = true,
+    ["a"] = true,
+    ["b"] = true,
+    ["c"] = true,
+    ["d"] = true,
+    ["e"] = true,
+    ["f"] = true,
+    ["g"] = true,
+    ["h"] = true,
+    ["i"] = true,
+    ["j"] = true,
+    ["k"] = true,
+    ["l"] = true,
+    ["m"] = true,
+    ["n"] = true,
+    ["o"] = true,
+    ["p"] = true,
+    ["q"] = true,
+    ["r"] = true,
+    ["s"] = true,
+    ["t"] = true,
+    ["u"] = true,
+    ["v"] = true,
+    ["w"] = true,
+    ["x"] = true,
+    ["y"] = true,
+    ["z"] = true,
+    ["A"] = true,
+    ["B"] = true,
+    ["C"] = true,
+    ["D"] = true,
+    ["E"] = true,
+    ["F"] = true,
+    ["G"] = true,
+    ["H"] = true,
+    ["I"] = true,
+    ["J"] = true,
+    ["K"] = true,
+    ["L"] = true,
+    ["M"] = true,
+    ["N"] = true,
+    ["O"] = true,
+    ["P"] = true,
+    ["Q"] = true,
+    ["R"] = true,
+    ["S"] = true,
+    ["T"] = true,
+    ["U"] = true,
+    ["V"] = true,
+    ["W"] = true,
+    ["X"] = true,
+    ["Y"] = true,
+    ["Z"] = true,
+    ["["] = true,
+    ["]"] = true,
+    [";"] = true,
+    ["'"] = true,
+    ["\\"] = true,
+    [","] = true,
+    ["."] = true,
+    ["/"] = true,
+    ["backspace"] = true,
+    ["tab"] = true,
+    ["enter"] = true,
+    ["left shift"] = true,
+    ["right shift"] = true,
+    ["left control"] = true,
+    ["left alt"] = true,
+    ["space"] = true,
+    ["right alt"] = true,
+    ["right control"] = true,
+    ["insert"] = true,
+    ["home"] = true,
+    ["page up"] = true,
+    ["delete"] = true,
+    ["end"] = true,
+    ["page down"] = true,
+    ["up"] = true,
+    ["down"] = true,
+    ["left"] = true,
+    ["right"] = true,
+    ["numlock"] = true,
+    ["[/]"] = true,
+    ["[*]"] = true,
+    ["[-]"] = true,
+    ["[+]"] = true,
+    ["[enter]"] = true,
+    ["[,]"] = true,
+    ["[1]"] = true,
+    ["[2]"] = true,
+    ["[3]"] = true,
+    ["[4]"] = true,
+    ["[5]"] = true,
+    ["[6]"] = true,
+    ["[7]"] = true,
+    ["[8]"] = true,
+    ["[9]"] = true,
+    ["[0]"] = true,
 }
 
-local playerData = {}
 local sessionSettings = {
-    maxInventorySlots = 4,
-    -- maxWinchLength
+    maxInventorySlots = 4
 }
+local playerData = {}
 
 local spawnedObjects = {}
 
@@ -67,7 +169,7 @@ function update()
 end
 
 function OnPlayerAttachDetachWinch(playerId)
-    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     if playerData[playerId].playersWinch ~= nil then
@@ -143,7 +245,13 @@ function SelectConnectionPoint(playerId, position)
             playerData[playerId].connectionPoints[connectionPoint] = visualizer
         end
     else
-        playerData[playerId].playersWinch = Winch.new(playerData[playerId].selectedConnectionPoint, closest.point)
+        local defaultWinchSettings = playerData[playerId].settigns.defaultWinch
+        playerData[playerId].playersWinch = Winch.new(playerData[playerId].selectedConnectionPoint, closest.point,
+            defaultWinchSettings.strength,
+            defaultWinchSettings.elasticity,
+            defaultWinchSettings.speed
+        )
+
         playerData[playerId].playersWinch:AddOnSnapCallback(playerId, OnWinchSnap)
         playerData[playerId].connectingWinch = false
         for block, visualizer in pairs(playerData[playerId].connectionPoints) do
@@ -196,23 +304,28 @@ function OnPlayerJoined(player)
 
     playerData[playerId] = {
         inventory = {
-            -- winch 1
-            -- winch 2
-            -- anchor 1
-            -- anchor 2
+            isOpen = false,
+            selectedSlot = 1,
+            slots = {
+                -- winch 1
+                -- winch 2
+                -- anchor 1
+                -- anchor 2
+            }
         },
         input = {
             isExtending = false,
             isPulling = false,
-            chatOpen = false,
+            chatOpen = false
         },
         ui = {
-            page = "main", -- "settings"|"help"
-            inventoryBoxId = nil,
+            page = "main", -- "settings"|"help"|"loadout"|"keybinds"
+            focusesLoadoutSlot = nil,
+            inventoryBoxId = nil
         },
-        settings = {    -- some settings per winch? Default winch values get stored in here
+        settings = {
             keybinds = {
-                winch ={
+                winch = {
                     extend = "up",
                     pull = "down",
                 },
@@ -231,35 +344,59 @@ function OnPlayerJoined(player)
         }
     }
     UpdateUi(playerId, "main")
-    --[[
-    playerData[playerId] = {
-        winches = nil,
-        isExtending = false,
-        isPulling = false,
-        placingAnchor = false,
-        anchors = {},
-        connectingWinch = false,
-        connectionPoints = {},
-        selectedConnectionPoint = nil,
-        chatOpen = false,
-        infoBox = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch Mod is enabled.", "press 'V' to start winching.",
-            math.huge, "Winch_Icon")
-    }
-    ]]--
-
+    tm.playerUI.ShowCursorWorldPosition()
     tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
 
     tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnOpenCloseChat", "enter")
-    tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnPlayerAttachDetachWinch", "v")
-    tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnPlayerPlaceRemoveAnchor", "t")
-
-    tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnPlayerPullWinchStart", "q")
-    tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnPlayerExtendWinchStart", "e")
-    tm.input.RegisterFunctionToKeyUpCallback(playerId, "OnPlayerPullWinchStop", "q")
-    tm.input.RegisterFunctionToKeyUpCallback(playerId, "OnPlayerExtendWinchStop", "e")
+    -- tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnPlayerAttachDetachWinch", "v")
+    -- tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnPlayerPlaceRemoveAnchor", "t")
 end
 
 tm.players.OnPlayerJoined.add(OnPlayerJoined)
+tm.input.OnPlayerKeyDown.add(PlayerKeyDown)
+tm.input.OnPlayerKeyUp.add(PlayerKeyUp)
+
+function PlayerKeyDown(player, keyName)
+    local keyBinds = playerData[player.playerId].settings.keybinds
+    local keyBindFunctions = {
+        [keyBinds.winch.extend] = function(playerId)
+            OnPlayerExtendWinchStart(playerId)
+        end,
+        [keyBinds.winch.pull] = function(playerId)
+            OnPlayerPullWinchStart(playerId)
+        end,
+        [keyBinds.inventory.left] = function(playerId)
+            OnPlayerInventoryLeft(playerId)
+        end,
+        [keyBinds.inventory.right] = function(playerId)
+            OnPlayerInventoryRight(playerId)
+        end,
+        [keyBinds.inventory.useItem] = function(playerId)
+            OnPlayerUseItem(playerId)
+        end,
+        [keyBinds.inventory.openClose] = function(playerId)
+            OnPlayerOpenCloseInventory(playerId)
+        end
+    }
+    if keyBindFunctions[keyName] then
+        keyBindFunctions[keyName](player.playerId)
+    end
+end
+
+function PlayerKeyUp(player, keyName)
+    local keyBinds = playerData[player.playerId].settings.keybinds
+    local keyBindFunctions = {
+        [keyBinds.winch.extend] = function(playerId)
+            OnPlayerExtendWinchStop(playerId)
+        end,
+        [keyBinds.winch.pull] = function(playerId)
+            OnPlayerPullWinchStop(playerId)
+        end
+    }
+    if keyBindFunctions[keyName] then
+        keyBindFunctions[keyName](player.playerId)
+    end
+end
 
 function GetAllConnectionPointsInRange(pos, range, excludedStructures)
     range = range or 50
@@ -360,7 +497,7 @@ function TableContains(table, value)
     return false
 end
 
---#region UI 
+--#region UI
 local btnReturn = "<b><color=#69d9d8>↩️ Return </color></b>"
 
 function DrawMainMenu(playerId)
@@ -374,7 +511,6 @@ function DrawMainMenu(playerId)
 
     tm.playerUI.AddUILabel(playerId, "lblCredit1", "Made with love ❤️")
     tm.playerUI.AddUILabel(playerId, "lblCredit2", "<color=#BEAED5>by Blockhampter</color>")
-
 end
 
 function DrawSettings(playerId)
@@ -388,7 +524,7 @@ function DrawSettings(playerId)
     tm.playerUI.AddUILabel(playerId, "lblWinchHeading", "- default winch settings -")
     tm.playerUI.AddUILabel(playerId, "lblWinchStrength", "Strength:")
     tm.playerUI.AddUIText(playerId, "txtWinchStrength", settings.defaultWinch.strength, function(UICallbackData)
-        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 1 then
+        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 0 then
             tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
             return
         end
@@ -396,7 +532,7 @@ function DrawSettings(playerId)
     end)
     tm.playerUI.AddUILabel(playerId, "lblWinchElasticity", "Elasticity:")
     tm.playerUI.AddUIText(playerId, "txtWinchElasticity", settings.defaultWinch.elasticity, function(UICallbackData)
-        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 1 then
+        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 0 then
             tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
             return
         end
@@ -404,7 +540,7 @@ function DrawSettings(playerId)
     end)
     tm.playerUI.AddUILabel(playerId, "lblWinchSpeed", "Speed:")
     tm.playerUI.AddUIText(playerId, "txtWinchSpeed", settings.defaultWinch.speed, function(UICallbackData)
-        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 1 then
+        if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 0 then
             tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
             return
         end
@@ -412,6 +548,18 @@ function DrawSettings(playerId)
     end)
 
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
+    if not tm.players.IsPlayerAdministrator(playerId) then
+        return
+    end
+    tm.playerUI.AddUILabel(playerId, "lblSessionSettingsHeading", "- session settings -")
+    tm.playerUI.AddUILabel(playerId, "lblMaxInventorySlots", "max inventory slots:")
+    tm.playerUI.AddUIText(playerId, "txtWinchStrength", settings.defaultWinch.strength, function(UICallbackData)
+        if tonumber(UICallbackData.value) == nil or 9 >= tonumber(UICallbackData.value) < 0 then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number 9 > x < 0", 5)
+            return
+        end
+        sessionSettings.maxInventorySlots = tonumber(UICallbackData.value)
+    end)
 end
 
 function DrawKeybindSettings(playerId)
@@ -474,6 +622,18 @@ function DrawKeybindSettings(playerId)
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
 end
 
+function DrawLoadout(playerId)
+    local inventory = playerData[playerId].inventory
+    tm.playerUI.AddUIButton(playerId, "btnReturn", btnReturn, function() UpdateUi(playerId, "main") end)
+    tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Loadout -~")
+
+    for key, slot in pairs(inventory.slots) do
+        tm.playerUI.AddUIButton(playerId, "btnInventorySlot" .. key, slot.name, function()
+
+        end)
+    end
+end
+
 --#region PlayerCallback
 function OnWinchSnap(callback)
     local playerId = callback.playerId
@@ -486,7 +646,7 @@ end
 function OnPlayerClick(callback)
     local playerId = callback.playerId
     local position = tm.vector3.Create(callback.value)
-    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     if playerData[playerId].connectingWinch then
@@ -497,50 +657,60 @@ function OnPlayerClick(callback)
 end
 
 function OnPlayerPlaceRemoveAnchor(playerId)
-    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     playerData[playerId].placingAnchor = not playerData[playerId].placingAnchor
 end
 
 function OnPlayerPullWinchStart(playerId)
-    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].isPulling = true
+        playerData[playerId].input.isPulling = true
     end
 end
 
 function OnPlayerExtendWinchStart(playerId)
-    if playerData[playerId].chatOpen then return end
+    if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].isExtending = true
+        playerData[playerId].input.isExtending = true
     end
 end
 
 function OnPlayerPullWinchStop(playerId)
-    if playerData[playerId].chatOpen then return end
-    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+    if playerData[playerId].input.chatOpen then return end
 
-    if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].isPulling = false
-    end
+    playerData[playerId].input.isPulling = false
 end
 
 function OnPlayerExtendWinchStop(playerId)
-    if playerData[playerId].chatOpen then return end
-    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+    if playerData[playerId].input.chatOpen then return end
 
-    if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].isExtending = false
-    end
+    playerData[playerId].input.isExtending = false
 end
 
 function OnOpenCloseChat(playerId)
-    playerData[playerId].chatOpen = not playerData[playerId].chatOpen
+    playerData[playerId].input.chatOpen = not playerData[playerId].input.chatOpen
+end
+
+function OnPlayerInventoryLeft(playerId)
+    if playerData[playerId].input.chatOpen then return end
+end
+
+function OnPlayerInventoryRight(playerId)
+    if playerData[playerId].input.chatOpen then return end
+end
+
+function OnPlayerOpenCloseInventory(playerId)
+    if playerData[playerId].input.chatOpen then return end
+end
+
+function OnPlayerUseItem(playerId)
+    if playerData[playerId].input.chatOpen then return end
 end
 
 --#endregion
