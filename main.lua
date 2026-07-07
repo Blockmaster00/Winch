@@ -187,28 +187,31 @@ function UseWinch(playerId, winchItem)
 end
 
 function PlayerUpdate(player)
-    local playerDataTable = playerData[player.playerId]
-    if tm.players.GetPlayerIsInBuildMode(player.playerId) then return end
+    local playerId = player.playerId
+    local inventory = playerData[playerId].invenotry
+    local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
 
-    if playerDataTable.playersWinch ~= nil then
-        playerDataTable.playersWinch:update()
-        if playerDataTable.isPulling then
-            playerDataTable.playersWinch:pull()
-            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox,
-                "Pulling Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup() * 2) % 4)))
-        elseif playerDataTable.isExtending then
-            playerDataTable.playersWinch:extend()
-            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox,
-                "Extending Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup() * 2) % 4)))
-        else
-            tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox, "Winch connected.")
+    for key, item in ipairs(inventory) do
+        if item.type == ITEM_TYPES.winch and item.isUsed then
+            item.objectReference:update()
         end
-        tm.playerUI.SubtleMessageUpdateMessageForPlayer(player.playerId, playerDataTable.infoBox,
-            "length: " .. string.format("%.2f", playerDataTable.playersWinch.length) .. "m")
-    elseif playerDataTable.connectingWinch then
-        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerDataTable.infoBox,
+    end
+    local inputs = playerData[playerId].input
+    if inputs.isExtending then
+        selectedInventorySlot.objectReference:extend()
+        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, "i",
+            "Extending Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup() * 2) % 4)))
+    end
+    if inputs.isPulling then
+        selectedInventorySlot.objectReference:pull()
+        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, "i",
+            "Pulling Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup() * 2) % 4)))
+    end
+
+    if playerData[playerId].action == "connectingWinch" then
+        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(player.playerId, playerData[playerId].infoBox,
             "Select a connection point.")
-        for point, visualizer in pairs(playerDataTable.connectionPoints) do
+        for point, visualizer in pairs(playerData[playerId].connectionPoints) do
             local pointPos = GetConnectionPointPosition(point)
             visualizer.GetTransform().SetPosition(pointPos)
         end
@@ -219,40 +222,6 @@ function update()
     local playerList = tm.players.CurrentPlayers()
     for key, player in ipairs(playerList) do
         PlayerUpdate(player)
-    end
-end
-
-function OnPlayerAttachDetachWinch(playerId)
-    if playerData[playerId].input.chatOpen then return end
-    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
-
-    if playerData[playerId].playersWinch ~= nil then
-        playerData[playerId].playersWinch:remove()
-        playerData[playerId].playersWinch = nil
-        return
-    end
-
-    if not playerData[playerId].connectingWinch then
-        playerData[playerId].connectingWinch = true
-        playerData[playerId].connectionPoints = {}
-        local playerStructure = tm.players.OccupiedStructure(playerId)
-        local blockList = GetAllConnectionPointsOnStructure(playerStructure)
-
-        for key, block in ipairs(blockList) do
-            local visualizer = tm.physics.SpawnObject(block.GetPosition(), Winch.CONNECTION_POINT.PREFAB)
-            visualizer.GetTransform().SetScale(Winch.CONNECTION_POINT.SCALE)
-            visualizer.SetIsStatic(true)
-            visualizer.SetIsTrigger(true)
-            playerData[playerId].connectionPoints[block] = visualizer
-        end
-        return
-    else
-        playerData[playerId].connectingWinch = false
-        for block, visualizer in pairs(playerData[playerId].connectionPoints) do
-            visualizer.Despawn()
-        end
-        playerData[playerId].selectedConnectionPoint = nil
-        playerData[playerId].connectionPoints = {}
     end
 end
 
