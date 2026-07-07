@@ -362,7 +362,7 @@ function OnPlayerJoined(player)
         },
         ui = {
             page = "main", -- "settings"|"help"|"loadout"|"keybinds"
-            focusesLoadoutSlot = nil,
+            focusedLoadoutSlot = nil,
             inventoryBoxId = nil
         },
         settings = {
@@ -696,9 +696,26 @@ function DrawLoadout(playerId)
     tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Loadout -~")
 
     for key, slot in pairs(inventory.slots) do
-        tm.playerUI.AddUIButton(playerId, "btnInventorySlot" .. key, slot.name, function()
+        local isFocused = playerData[playerId].ui.focusedLoadoutSlot == key
+        tm.playerUI.AddUIButton(playerId, "btnInventorySlot" .. key,
+            (isFocused and COLORS.PURPLE or "") .. slot.name .. " " .. key .. (isFocused and "</color>" or ""),
+            function()
+                playerData[playerId].ui.focusedLoadoutSlot = key
+                UpdateUi(playerId, "loadout")
+            end)
+        if isFocused then
+            tm.playerUI.AddUIButton(playerId, "btnChangeLoadoutSlot", "Change", function()
 
-        end)
+            end) -- change
+            tm.playerUI.AddUIButton(playerId, "btnRemoveLoadoutSlot", "Remove", function()
+
+            end) -- remove
+        end
+    end
+    if #inventory.slots < sessionSettings.maxInventorySlots then
+        tm.playerUI.AddUIButton(playerId, "btnAddLoadoutSlot", "Add", function()
+
+        end) -- add loadout slot
     end
 end
 
