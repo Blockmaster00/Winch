@@ -188,7 +188,7 @@ end
 
 function PlayerUpdate(player)
     local playerId = player.playerId
-    local inventory = playerData[playerId].invenotry
+    local inventory = playerData[playerId].inventory
     local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
 
     for key, item in ipairs(inventory) do
@@ -735,8 +735,8 @@ end
 function OnPlayerPullWinchStart(playerId)
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
-
-    if playerData[playerId].playersWinch ~= nil then
+    local selectedItem = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
+    if selectedItem.type == ITEM_TYPES.winch and selectedItem.isUsed then
         playerData[playerId].input.isPulling = true
     end
 end
@@ -744,8 +744,8 @@ end
 function OnPlayerExtendWinchStart(playerId)
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
-
-    if playerData[playerId].playersWinch ~= nil then
+    local selectedItem = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
+    if selectedItem.type == ITEM_TYPES.winch and selectedItem.isUsed then
         playerData[playerId].input.isExtending = true
     end
 end
