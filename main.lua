@@ -5,13 +5,6 @@ tm.physics.AddTexture("assets/Winch_Icon.png", "Winch_Icon")
 local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
 
-local COLORS = {
-    GREEN = "<color=" .. "#C7D66D" .. ">",
-    RED = "<color=" .. "#F78764" .. ">",
-    BLUE = "<color=" .. "#69d9d8" .. ">",
-    PURPLE = "<color=" .. "#6A5B6E" .. ">",
-}
-
 local KEYBINDS = {
     ["`"] = true,
     ["1"] = true,
@@ -128,9 +121,70 @@ local KEYBINDS = {
 local sessionSettings = {
     maxInventorySlots = 4
 }
+
 local playerData = {}
 
 local spawnedObjects = {}
+
+local ITEM_TYPES = {
+    anchor = {
+        name = "Anchor",
+        onUseCallback = UseAnchor, -- function that puts the player into anchor place mode or gets player out of this place mode
+        -- price = 20, -- could use this to make an economy system
+    },
+    winch = {
+        name = "Winch",
+        onUseCallback = UseWinch, -- function that puts the player into winch connect mode or removes the winch
+        -- price = 50,
+    }
+}
+
+function UseAnchor(playerId, anchorItem)
+    if anchorItem.isUsed then
+        RemoveByValue(spawnedObjects, anchorItem.objectReference.object)
+        anchorItem.objectReference:remove()
+        anchorItem.objectReference = nil
+        anchorItem.isUsed = false
+        -- give player visual feedback, that the anchor got retrieved
+        return
+    end
+    if not playerData[playerId].action == "placingAnchor" then
+        playerData[playerId].action = "placingAnchor"
+    elseif playerData[playerId].action == "placingAnchor" then
+        playerData[playerId].action = "none"
+    end
+end
+
+function UseWinch(playerId, winchItem)
+    if winchItem.isUsed then
+        winchItem.objectReference:remove()
+        winchItem.objectReference = nil
+        winchItem.isUsed = false
+        -- give player visual feedback, that the winch got detached
+        return
+    end
+    if not playerData[playerId].action == "connectingWinch" then -- initiate connection process
+        playerData[playerId].action = "connectingWinch"
+        playerData[playerId].connectionPoints = {}
+        local playerStructure = tm.players.OccupiedStructure(playerId)
+        local blockList = GetAllConnectionPointsOnStructure(playerStructure)
+
+        for key, block in ipairs(blockList) do
+            local visualizer = tm.physics.SpawnObject(block.GetPosition(), Winch.CONNECTION_POINT.PREFAB)
+            visualizer.GetTransform().SetScale(Winch.CONNECTION_POINT.SCALE)
+            visualizer.SetIsStatic(true)
+            visualizer.SetIsTrigger(true)
+            playerData[playerId].connectionPoints[block] = visualizer
+        end
+    elseif playerData[playerId].action == "connectingWinch" then -- cancel connection process
+        playerData[playerId].action = "none"
+        for block, visualizer in pairs(playerData[playerId].connectionPoints) do
+            visualizer.Despawn()
+        end
+        playerData[playerId].selectedConnectionPoint = nil
+        playerData[playerId].connectionPoints = {}
+    end
+end
 
 function PlayerUpdate(player)
     local playerDataTable = playerData[player.playerId]
@@ -203,9 +257,6 @@ function OnPlayerAttachDetachWinch(playerId)
 end
 
 function SelectConnectionPoint(playerId, position)
-    if not playerData[playerId].connectingWinch then
-        return
-    end
     local closest = {
         point = nil,
         distance = math.huge
@@ -245,15 +296,17 @@ function SelectConnectionPoint(playerId, position)
             playerData[playerId].connectionPoints[connectionPoint] = visualizer
         end
     else
-        local defaultWinchSettings = playerData[playerId].settigns.defaultWinch
-        playerData[playerId].playersWinch = Winch.new(playerData[playerId].selectedConnectionPoint, closest.point,
+        local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
+        local defaultWinchSettings = playerData[playerId].settings.defaultWinch
+        selectedInventorySlot.objectReference = Winch.new(playerData[playerId].selectedConnectionPoint, closest.point,
             defaultWinchSettings.strength,
             defaultWinchSettings.elasticity,
             defaultWinchSettings.speed
         )
+        selectedInventorySlot.objectReference:AddOnSnapCallback(playerId, OnWinchSnap)
+        selectedInventorySlot.isUsed = true
 
-        playerData[playerId].playersWinch:AddOnSnapCallback(playerId, OnWinchSnap)
-        playerData[playerId].connectingWinch = false
+        playerData[playerId].action = "none"
         for block, visualizer in pairs(playerData[playerId].connectionPoints) do
             visualizer.Despawn()
         end
@@ -271,8 +324,9 @@ function PlaceAnchor(playerId, hitPosition)
     if not raycastHit.DidHit() then return end
     local hitNormal = raycastHit.GetHitNormal()
 
-    local anchor = Anchor.new(hitPosition, hitNormal)
-    table.insert(spawnedObjects, anchor.object)
+    local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
+    selectedInventorySlot.objectReference = Anchor.new(hitPosition, hitNormal)
+    table.insert(spawnedObjects, selectedInventorySlot.objectReference.object)
 end
 
 function UpdateUi(playerId, uiPage)
@@ -303,14 +357,33 @@ function OnPlayerJoined(player)
     local playerId = player.playerId
 
     playerData[playerId] = {
+        connectionPoints = {},
+        selectedConnectionPoint = nil,
+        action = "none", -- "placingAnchor" | "connectingWinch"
         inventory = {
             isOpen = false,
             selectedSlot = 1,
             slots = {
-                -- winch 1
-                -- winch 2
-                -- anchor 1
-                -- anchor 2
+                {
+                    type = ITEM_TYPES.winch,
+                    objectReference = nil,
+                    isUsed = false,
+                },
+                {
+                    type = ITEM_TYPES.winch,
+                    objectReference = nil,
+                    isUsed = false,
+                },
+                {
+                    type = ITEM_TYPES.anchor,
+                    objectReference = nil,
+                    isUsed = false,
+                },
+                {
+                    type = ITEM_TYPES.anchor,
+                    objectReference = nil,
+                    isUsed = false,
+                },
             }
         },
         input = {
@@ -337,9 +410,9 @@ function OnPlayerJoined(player)
                 }
             },
             defaultWinch = {
-                strength = Winch.DEFAULT_STRENGTH,
-                elasticity = Winch.DEFAULT_ELASTICITY,
-                speed = Winch.SPEED
+                strength = Winch.strength,
+                elasticity = Winch.elasticity,
+                speed = Winch.speed
             }
         }
     }
@@ -497,7 +570,25 @@ function TableContains(table, value)
     return false
 end
 
+function RemoveByValue(table, value)
+    for i = 1, #table do
+        if table[i] == value then
+            table.remove(table, i)
+            return true
+        end
+    end
+    return false
+end
+
 --#region UI
+
+local COLORS = {
+    GREEN = "<color=" .. "#C7D66D" .. ">",
+    RED = "<color=" .. "#F78764" .. ">",
+    BLUE = "<color=" .. "#69d9d8" .. ">",
+    PURPLE = "<color=" .. "#6A5B6E" .. ">",
+}
+
 local btnReturn = "<b><color=#69d9d8>↩️ Return </color></b>"
 
 function DrawMainMenu(playerId)
@@ -509,7 +600,7 @@ function DrawMainMenu(playerId)
 
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
 
-    tm.playerUI.AddUILabel(playerId, "lblCredit1", "Made with love ❤️")
+    tm.playerUI.AddUILabel(playerId, "lblCredit1", "Made with ❤️")
     tm.playerUI.AddUILabel(playerId, "lblCredit2", "<color=#BEAED5>by Blockhampter</color>")
 end
 
@@ -546,6 +637,14 @@ function DrawSettings(playerId)
         end
         settings.defaultWinch.speed = tonumber(UICallbackData.value)
     end)
+    tm.playerUI.AddUIButton(playerId, "btnResetWinchToDefault", "Reset to default", function()
+        settings.defaultWinch = {
+            strength = Winch.strength,
+            elasticity = Winch.elasticity,
+            speed = Winch.speed
+        }
+        UpdateUi(playerId, "settings")
+    end)
 
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
     if not tm.players.IsPlayerAdministrator(playerId) then
@@ -555,7 +654,7 @@ function DrawSettings(playerId)
     tm.playerUI.AddUILabel(playerId, "lblMaxInventorySlots", "max inventory slots:")
     tm.playerUI.AddUIText(playerId, "txtWinchStrength", settings.defaultWinch.strength, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or 9 >= tonumber(UICallbackData.value) < 0 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number 9 > x < 0", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be number: 10 < x > 0", 5)
             return
         end
         sessionSettings.maxInventorySlots = tonumber(UICallbackData.value)
@@ -634,6 +733,8 @@ function DrawLoadout(playerId)
     end
 end
 
+--#endregion
+
 --#region PlayerCallback
 function OnWinchSnap(callback)
     local playerId = callback.playerId
@@ -649,18 +750,17 @@ function OnPlayerClick(callback)
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
-    if playerData[playerId].connectingWinch then
-        SelectConnectionPoint(playerId, position)
-    elseif playerData[playerId].placingAnchor then
-        PlaceAnchor(playerId, position)
+    local callAction = {
+        ["placingAnchor"] = function(playerId, position)
+            PlaceAnchor(playerId, position)
+        end,
+        ["connectingWinch"] = function(playerId, position)
+            SelectConnectionPoint(playerId, position)
+        end
+    }
+    if callAction[playerData[playerId].action] then
+        callAction[playerData[playerId].action](playerId, position)
     end
-end
-
-function OnPlayerPlaceRemoveAnchor(playerId)
-    if playerData[playerId].input.chatOpen then return end
-    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
-
-    playerData[playerId].placingAnchor = not playerData[playerId].placingAnchor
 end
 
 function OnPlayerPullWinchStart(playerId)
@@ -699,10 +799,20 @@ end
 
 function OnPlayerInventoryLeft(playerId)
     if playerData[playerId].input.chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+
+    local inventory = playerData[playerId].inventory
+    inventory.selectedSlot = (inventory.selectedSlot - 1) % #inventory.slots
+    playerData[playerId].action = "none" -- maybe requires cleanup if a action gets stopped prematurely
 end
 
 function OnPlayerInventoryRight(playerId)
     if playerData[playerId].input.chatOpen then return end
+    if tm.players.GetPlayerIsInBuildMode(playerId) then return end
+
+    local inventory = playerData[playerId].inventory
+    inventory.selectedSlot = (inventory.selectedSlot + 1) % #inventory.slots
+    playerData[playerId].action = "none" -- maybe requires cleanup if a action gets stopped prematurely
 end
 
 function OnPlayerOpenCloseInventory(playerId)
@@ -711,6 +821,10 @@ end
 
 function OnPlayerUseItem(playerId)
     if playerData[playerId].input.chatOpen then return end
+    local inventory = playerData[playerId].inventory
+    if not inventory.isOpen then return end
+
+    inventory[inventory.selectedSlot].type.onUseCallback(playerId, inventory[inventory.selectedSlot])
 end
 
 --#endregion
