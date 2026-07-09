@@ -96,11 +96,8 @@ end
 function Winch:hasSnapped(stretchedDistance)
     if stretchedDistance > self.length * (self.elasticity / 100) then
         if self.OnSnapCallback ~= nil then
-            local callbackData = {
-                playerId = self.playerId,
-                stretchedDistance = stretchedDistance
-            }
-            self.OnSnapCallback(callbackData)
+            self.callbackData.stretchedDistance = stretchedDistance
+            self.OnSnapCallback(self.callbackData)
         end
         self:remove()
         return true
@@ -120,9 +117,10 @@ function Winch:_getTargetPos()
     end
 end
 
-function Winch:AddOnSnapCallback(playerId, callbackFunction)
-    self.playerId = playerId
+function Winch:AddOnSnapCallback(playerId, callbackFunction, callbackData)
     self.OnSnapCallback = callbackFunction
+    self.callbackData = callbackData
+    self.callbackData.playerId = playerId
 end
 
 return Winch
