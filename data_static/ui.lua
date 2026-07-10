@@ -4,6 +4,7 @@ local playerData
 local sessionSettings
 local KEYBINDS
 local Winch
+local ITEM_TYPES
 
 local COLORS = {
     GREEN = "<color=" .. "#C7D66D" .. ">",
@@ -23,6 +24,7 @@ function UI.Setup(config)
     sessionSettings = config.sessionSettings
     KEYBINDS = config.KEYBINDS
     Winch = config.Winch
+    ITEM_TYPES = config.ITEM_TYPES
 end
 
 local function DrawMainMenu(playerId)
@@ -173,6 +175,10 @@ local function DrawLoadout(playerId)
                 UI.UpdateUi(playerId, "loadout")
             end)
         if isFocused then
+            if slot.type == ITEM_TYPES.winch then
+                tm.playerUI.AddUIButton(playerId, "btnConfigureWinch", "Configure", function()
+                end)
+            end
             tm.playerUI.AddUIButton(playerId, "btnChangeLoadoutSlot", "Change", function()
             end)
             tm.playerUI.AddUIButton(playerId, "btnRemoveLoadoutSlot", "Remove", function()
@@ -194,6 +200,8 @@ function UI.UpdateUi(playerId, uiPage)
     }
     if uiPages[uiPage] then
         playerData[playerId].ui.page = uiPage
+        playerData[playerId].inventory.isOpen = false
+        playerData[playerId].ui.inventoryBoxId = nil
         tm.playerUI.ClearUI(playerId)
         uiPages[uiPage](playerId)
     else
@@ -211,8 +219,22 @@ function UI.UpdateInventoryMessage(playerId)
     else
         message = "<- " .. "Use" .. " ->"
     end
-    tm.playerUI.SubtleMessageUpdateHeaderForPlayer(playerId, playerData[playerId].inventoryBoxId, header)
-    tm.playerUI.SubtleMessageUpdateMessageForPlayer(playerId, playerData[playerId].inventoryBoxId, message)
+    tm.playerUI.SubtleMessageUpdateHeaderForPlayer(playerId, playerData[playerId].ui.inventoryBoxId, header)
+    tm.playerUI.SubtleMessageUpdateMessageForPlayer(playerId, playerData[playerId].ui.inventoryBoxId, message)
+end
+
+function UI.UpdateItemBoxMessage(playerId, itemInUse)
+    local inputs = playerData[playerId].input
+    if inputs.isExtending then
+        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(playerId, playerData[playerId].ui.useItemBoxId,
+            "Extending Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup() * 2) % 4)))
+    elseif inputs.isPulling then
+        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(playerId, playerData[playerId].ui.useItemBoxId,
+            "Pulling Winch" .. string.rep(".", (math.floor(tm.os.GetRealtimeSinceStartup() * 2) % 4)))
+    else
+        tm.playerUI.SubtleMessageUpdateHeaderForPlayer(playerId, playerData[playerId].ui.useItemBoxId, "")
+    end
+    tm.playerUI.SubtleMessageUpdateMessageForPlayer(playerId, playerData[playerId].ui.useItemBoxId, "Length: " .. string.format("%.2f", itemInUse.objectReference.length) .. "m")
 end
 
 return UI
