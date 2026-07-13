@@ -150,9 +150,11 @@ function UseAnchor(playerId, anchorItem)
     if playerData[playerId].action == "none" then
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "placingAnchor"
+        UI.UpdateInventoryMessage(playerId)
     elseif playerData[playerId].action == "placingAnchor" then
         tm.playerUI.DeregisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "none"
+        UI.UpdateInventoryMessage(playerId)
     end
 end
 
@@ -169,6 +171,7 @@ function UseWinch(playerId, winchItem)
     if playerData[playerId].action == "none" then -- initiate connection process
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "connectingWinch"
+        UI.UpdateInventoryMessage(playerId)
         playerData[playerId].connectionPoints = {}
         local playerStructure = tm.players.OccupiedStructure(playerId)
         local blockList = GetAllConnectionPointsOnStructure(playerStructure)
@@ -182,6 +185,7 @@ function UseWinch(playerId, winchItem)
     elseif playerData[playerId].action == "connectingWinch" then -- cancel connection process
         tm.playerUI.DeregisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "none"
+        UI.UpdateInventoryMessage(playerId)
         for block, visualizer in pairs(playerData[playerId].connectionPoints) do
             visualizer.Despawn()
         end
@@ -292,7 +296,8 @@ function SelectConnectionPoint(playerId, position)
         )
 
         playerData[playerId].action = "none"
-        selectedInventorySlot.objectReference:AddOnSnapCallback(playerId, OnWinchSnap, {inventorySlot = playerData[playerId].inventory.selectedSlot})
+        selectedInventorySlot.objectReference:AddOnSnapCallback(playerId, OnWinchSnap,
+            { inventorySlot = playerData[playerId].inventory.selectedSlot })
         selectedInventorySlot.objectReference:update()
         selectedInventorySlot.isUsed = true
 
@@ -427,6 +432,7 @@ function PlayerKeyUp(player, keyName)
         keyBindFunctions[keyName](player.playerId)
     end
 end
+
 tm.input.OnPlayerKeyDown.add(PlayerKeyDown)
 tm.input.OnPlayerKeyUp.add(PlayerKeyUp)
 
@@ -566,7 +572,6 @@ function EnsureUseItemBox(playerId)
     end
 end
 
-
 --#region PlayerCallback
 function OnWinchSnap(callback)
     local playerId = callback.playerId
@@ -653,7 +658,7 @@ function OnPlayerInventoryLeft(playerId)
     -- update use-item box for new selected slot
     EnsureUseItemBox(playerId)
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
-            visualizer.Despawn()
+        visualizer.Despawn()
     end
     playerData[playerId].selectedConnectionPoint = nil
     playerData[playerId].connectionPoints = {}
@@ -672,7 +677,7 @@ function OnPlayerInventoryRight(playerId)
     UI.UpdateInventoryMessage(playerId)
     EnsureUseItemBox(playerId)
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
-            visualizer.Despawn()
+        visualizer.Despawn()
     end
     playerData[playerId].selectedConnectionPoint = nil
     playerData[playerId].connectionPoints = {}
@@ -684,7 +689,8 @@ function OnPlayerOpenCloseInventory(playerId)
     local inventory = playerData[playerId].inventory
     inventory.isOpen = not inventory.isOpen
     if inventory.isOpen then
-        playerData[playerId].ui.inventoryBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Inventory", "", math.huge)
+        playerData[playerId].ui.inventoryBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Inventory", "",
+            math.huge)
     else
         tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.inventoryBoxId)
         playerData[playerId].ui.inventoryBoxId = nil
@@ -696,7 +702,7 @@ function OnPlayerOpenCloseInventory(playerId)
     EnsureUseItemBox(playerId)
     playerData[playerId].action = "none"
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
-            visualizer.Despawn()
+        visualizer.Despawn()
     end
     playerData[playerId].selectedConnectionPoint = nil
     playerData[playerId].connectionPoints = {}
@@ -706,9 +712,8 @@ function OnPlayerUseItem(playerId)
     if playerData[playerId].input.chatOpen then return end
     if not playerData[playerId].inventory.isOpen then return end
 
-    playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot].type.onUseCallback(playerId, playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot])
+    playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot].type.onUseCallback(playerId,
+        playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot])
 end
 
 --#endregion
-
-
