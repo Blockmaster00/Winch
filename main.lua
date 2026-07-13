@@ -592,12 +592,8 @@ function OnPlayerClick(callback)
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     local callAction = {
-        ["placingAnchor"] = function(playerId, position)
-            PlaceAnchor(playerId, position)
-        end,
-        ["connectingWinch"] = function(playerId, position)
-            SelectConnectionPoint(playerId, position)
-        end
+        ["placingAnchor"] = PlaceAnchor,
+        ["connectingWinch"] = SelectConnectionPoint
     }
     if callAction[playerData[playerId].action] then
         callAction[playerData[playerId].action](playerId, position)
