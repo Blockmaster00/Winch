@@ -213,12 +213,18 @@ function UI.UpdateInventoryMessage(playerId)
     local inventory = playerData[playerId].inventory
     local selectedSlot = inventory.slots[inventory.selectedSlot]
     local header = inventory.selectedSlot .. " - " .. selectedSlot.type.name
-    local message
-    if selectedSlot.isUsed then
-        message = "<- " .. "Retrieve" .. " ->"
-    else
-        message = "<- " .. "Use" .. " ->"
+    local action = selectedSlot.isUsed and "Retrieve" or "Use"
+    if playerData[playerId].action == "connectingWinch" then
+        action = "Connecting"
+    elseif playerData[playerId].action == "placingAnchor" then
+        action = "Placing"
     end
+    local message =
+        "<-" ..
+        string.rep(" ", math.floor((28 - #action) / 2)) ..
+        action ..
+        string.rep(" ", math.floor((28 - #action) / 2)) ..
+        "->"
     tm.playerUI.SubtleMessageUpdateHeaderForPlayer(playerId, playerData[playerId].ui.inventoryBoxId, header)
     tm.playerUI.SubtleMessageUpdateMessageForPlayer(playerId, playerData[playerId].ui.inventoryBoxId, message)
 end
@@ -234,7 +240,8 @@ function UI.UpdateItemBoxMessage(playerId, itemInUse)
     else
         tm.playerUI.SubtleMessageUpdateHeaderForPlayer(playerId, playerData[playerId].ui.useItemBoxId, "")
     end
-    tm.playerUI.SubtleMessageUpdateMessageForPlayer(playerId, playerData[playerId].ui.useItemBoxId, "Length: " .. string.format("%.2f", itemInUse.objectReference.length) .. "m")
+    tm.playerUI.SubtleMessageUpdateMessageForPlayer(playerId, playerData[playerId].ui.useItemBoxId,
+        "Length: " .. string.format("%.2f", itemInUse.objectReference.length) .. "m")
 end
 
 return UI
