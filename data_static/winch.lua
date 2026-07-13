@@ -17,8 +17,11 @@ Winch.TEXTURE = "ropeTexture"
 Winch.strength = 10
 Winch.elasticity = 150
 Winch.speed = 1
-tm.physics.AddMesh("assets/Winch.obj", Winch.MODEL)
-tm.physics.AddTexture("assets/Winch.png", Winch.TEXTURE)
+tm.physics.AddMesh("assets/winch/winch.obj", Winch.MODEL)
+tm.physics.AddTexture("assets/winch/winch.png", Winch.TEXTURE)
+tm.physics.AddTexture("assets/winch/winch_yellow.png", Winch.TEXTURE .. "_yellow")
+--tm.physics.AddTexture("assets/winch/winch_orange.png", Winch.TEXTURE .. "_orange") ...
+
 
 
 ---@param origin ModBlock
