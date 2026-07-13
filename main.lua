@@ -143,18 +143,15 @@ function UseAnchor(playerId, anchorItem)
         anchorItem.objectReference:remove()
         anchorItem.objectReference = nil
         anchorItem.isUsed = false
-        UI.UpdateInventoryMessage(playerId)
         -- give player visual feedback, that the anchor got retrieved
         return
     end
     if playerData[playerId].action == "none" then
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "placingAnchor"
-        UI.UpdateInventoryMessage(playerId)
     elseif playerData[playerId].action == "placingAnchor" then
         tm.playerUI.DeregisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "none"
-        UI.UpdateInventoryMessage(playerId)
     end
 end
 
@@ -163,7 +160,6 @@ function UseWinch(playerId, winchItem)
         winchItem.objectReference:remove()
         winchItem.objectReference = nil
         winchItem.isUsed = false
-        UI.UpdateInventoryMessage(playerId)
         EnsureUseItemBox(playerId)
         -- give player visual feedback, that the winch got detached
         return
@@ -171,7 +167,6 @@ function UseWinch(playerId, winchItem)
     if playerData[playerId].action == "none" then -- initiate connection process
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "connectingWinch"
-        UI.UpdateInventoryMessage(playerId)
         playerData[playerId].connectionPoints = {}
         local playerStructure = tm.players.OccupiedStructure(playerId)
         local blockList = GetAllConnectionPointsOnStructure(playerStructure)
@@ -185,7 +180,6 @@ function UseWinch(playerId, winchItem)
     elseif playerData[playerId].action == "connectingWinch" then -- cancel connection process
         tm.playerUI.DeregisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "none"
-        UI.UpdateInventoryMessage(playerId)
         for block, visualizer in pairs(playerData[playerId].connectionPoints) do
             visualizer.Despawn()
         end
@@ -581,7 +575,7 @@ function OnWinchSnap(callback)
         tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.useItemBoxId)
         playerData[playerId].ui.useItemBoxId = nil
     end
-    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!.",
+    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!",
         "stretched distance: " .. string.format("%.2f", stretchedDistance), 5)
     playerData[playerId].inventory.slots[callback.inventorySlot].objectReference = nil
     playerData[playerId].inventory.slots[callback.inventorySlot].isUsed = false
@@ -714,6 +708,7 @@ function OnPlayerUseItem(playerId)
 
     playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot].type.onUseCallback(playerId,
         playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot])
+    UI.UpdateInventoryMessage(playerId)
 end
 
 --#endregion
