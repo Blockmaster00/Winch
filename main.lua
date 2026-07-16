@@ -165,10 +165,14 @@ function UseWinch(playerId, winchItem)
         return
     end
     if playerData[playerId].action == "none" then -- initiate connection process
+        local playerStructure = tm.players.OccupiedStructure(playerId)
+        if playerStructure == nil then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Enter a structure first!", "", 5)
+            return
+        end
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "connectingWinch"
         playerData[playerId].connectionPoints = {}
-        local playerStructure = tm.players.OccupiedStructure(playerId)
         local blockList = GetAllConnectionPointsOnStructure(playerStructure)
         for key, block in ipairs(blockList) do
             local visualizer = tm.physics.SpawnObject(block.GetPosition(), Winch.CONNECTION_POINT.PREFAB)
