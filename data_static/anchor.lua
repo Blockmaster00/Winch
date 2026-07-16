@@ -3,8 +3,8 @@
 local Anchor = {}
 Anchor.MODEL = "AnchorModel"
 Anchor.TEXTURE = "AnchorTexture"
-tm.physics.AddMesh("assets/Anchor.obj", Anchor.MODEL)
-tm.physics.AddTexture("assets/Anchor.png", Anchor.TEXTURE)
+tm.physics.AddMesh("assets/anchor/Anchor.obj", Anchor.MODEL)
+tm.physics.AddTexture("assets/anchor/Anchor.png", Anchor.TEXTURE)
 
 
 ---@param pos ModVector3

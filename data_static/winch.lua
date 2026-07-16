@@ -14,34 +14,32 @@ Winch.CONNECTION_POINT = {
 }
 Winch.MODEL = "ropeModel"
 Winch.TEXTURE = "ropeTexture"
-Winch.DEFAULT_STRENGTH = 20
-Winch.DEFAULT_ELASTICITY = 30
-Winch.SPEED = 1
-tm.physics.AddMesh("assets/Winch.obj", Winch.MODEL)
-tm.physics.AddTexture("assets/Winch.png", Winch.TEXTURE)
+Winch.strength = 10
+Winch.elasticity = 150
+Winch.speed = 1
+tm.physics.AddMesh("assets/winch/winch.obj", Winch.MODEL)
+tm.physics.AddTexture("assets/winch/winch.png", Winch.TEXTURE)
+tm.physics.AddTexture("assets/winch/winch_yellow.png", Winch.TEXTURE .. "_yellow")
+--tm.physics.AddTexture("assets/winch/winch_orange.png", Winch.TEXTURE .. "_orange") ...
+
 
 
 ---@param origin ModBlock
 ---@param target ModBlock|ModGameObject
 ---@param strength number|nil
 ---@param elasticity number|nil
-function Winch.new(origin, target, strength, elasticity)
-    local self = setmetatable({}, { __index = Winch })
-    self.origin = origin
-    self.target = target
-    self.strength = strength or Winch.DEFAULT_STRENGTH
-    self.elasticity = elasticity or Winch.DEFAULT_ELASTICITY
-    self.targetType = target.ToString()
-
+function Winch.new(origin, target, strength, elasticity, speed)
+    local self = setmetatable({
+        origin = origin,
+        target = target,
+        strength = strength,
+        elasticity = elasticity,
+        speed = speed,
+        targetType = target.ToString()
+    }, { __index = Winch })
 
     local originPos = origin.GetPosition()
-
-    local targetPos
-    if self.targetType == "Trailmakers.Mods.Api.Proxies.ModBlock" then
-        targetPos = target.GetPosition()
-    elseif self.targetType == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
-        targetPos = target.GetTransform().GetPositionWorld()
-    end
+    local targetPos = self:_getTargetPos()
     self.length = tm.vector3.Distance(originPos, targetPos)
     return self
 end
@@ -66,7 +64,7 @@ function Winch:_visualize(originPos, targetPos, ropeLength)
         self.ropeObject.SetIsTrigger(true)
     end
     self.ropeObject.GetTransform().SetPosition(ropePos)
-    self.ropeObject.GetTransform().SetScale(0.2, 0.2, ropeLength)
+    self.ropeObject.GetTransform().SetScale(0.3, 0.3, ropeLength)
     self.ropeObject.GetTransform().SetRotation(ropeRotation)
 end
 
@@ -89,23 +87,20 @@ function Winch:_applyForces(originPos, targetPos, stretchedDistance)
 end
 
 function Winch:pull()
-    self.length = self.length - (self.SPEED * tm.os.GetModDeltaTime())
+    self.length = self.length - (self.speed * tm.os.GetModDeltaTime())
 end
 
 function Winch:extend()
-    self.length = self.length + (self.SPEED * tm.os.GetModDeltaTime())
+    self.length = self.length + (self.speed * tm.os.GetModDeltaTime())
 end
 
 ---@param stretchedDistance number
 ---@return boolean
 function Winch:hasSnapped(stretchedDistance)
-    if stretchedDistance > self.length * (1 + (self.elasticity / 100)) then
+    if stretchedDistance > self.length * (self.elasticity / 100) then
         if self.OnSnapCallback ~= nil then
-            local callbackData = {
-                playerId = self.playerId,
-                stretchedDistance = stretchedDistance
-            }
-            self.OnSnapCallback(callbackData)
+            self.callbackData.stretchedDistance = stretchedDistance
+            self.OnSnapCallback(self.callbackData)
         end
         self:remove()
         return true
@@ -125,9 +120,10 @@ function Winch:_getTargetPos()
     end
 end
 
-function Winch:AddOnSnapCallback(playerId, callbackFunction)
-    self.playerId = playerId
+function Winch:AddOnSnapCallback(playerId, callbackFunction, callbackData)
     self.OnSnapCallback = callbackFunction
+    self.callbackData = callbackData
+    self.callbackData.playerId = playerId
 end
 
 return Winch
