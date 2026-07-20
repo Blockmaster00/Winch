@@ -136,7 +136,6 @@ function UseAnchor(playerId, anchorItem)
         anchorItem.objectReference:remove()
         anchorItem.objectReference = nil
         anchorItem.isUsed = false
-        UI.UpdateInventoryMessage(playerId)
         -- give player visual feedback, that the anchor got retrieved
         return
     end
@@ -154,16 +153,19 @@ function UseWinch(playerId, winchItem)
         winchItem.objectReference:remove()
         winchItem.objectReference = nil
         winchItem.isUsed = false
-        UI.UpdateInventoryMessage(playerId)
         EnsureUseItemBox(playerId)
         -- give player visual feedback, that the winch got detached
         return
     end
     if playerData[playerId].action == "none" then -- initiate connection process
+        local playerStructure = tm.players.OccupiedStructure(playerId)
+        if playerStructure == nil then
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Enter a structure first!", "", 5)
+            return
+        end
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "connectingWinch"
         playerData[playerId].connectionPoints = {}
-        local playerStructure = tm.players.OccupiedStructure(playerId)
         local blockList = GetAllConnectionPointsOnStructure(playerStructure)
         for key, block in ipairs(blockList) do
             local visualizer = tm.physics.SpawnObject(block.GetPosition(), Winch.CONNECTION_POINT.PREFAB)
@@ -292,7 +294,8 @@ function SelectConnectionPoint(playerId, position)
         )
 
         playerData[playerId].action = "none"
-        selectedInventorySlot.objectReference:AddOnSnapCallback(playerId, OnWinchSnap, {inventorySlot = playerData[playerId].inventory.selectedSlot})
+        selectedInventorySlot.objectReference:AddOnSnapCallback(playerId, OnWinchSnap,
+            { inventorySlot = playerData[playerId].inventory.selectedSlot })
         selectedInventorySlot.objectReference:update()
         selectedInventorySlot.isUsed = true
 
@@ -427,6 +430,7 @@ function PlayerKeyUp(player, keyName)
         keyBindFunctions[keyName](player.playerId)
     end
 end
+
 tm.input.OnPlayerKeyDown.add(PlayerKeyDown)
 tm.input.OnPlayerKeyUp.add(PlayerKeyUp)
 
@@ -566,7 +570,6 @@ function EnsureUseItemBox(playerId)
     end
 end
 
-
 --#region PlayerCallback
 function OnWinchSnap(callback)
     local playerId = callback.playerId
@@ -576,7 +579,7 @@ function OnWinchSnap(callback)
         tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.useItemBoxId)
         playerData[playerId].ui.useItemBoxId = nil
     end
-    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!.",
+    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!",
         "stretched distance: " .. string.format("%.2f", stretchedDistance), 5)
     playerData[playerId].inventory.slots[callback.inventorySlot].objectReference = nil
     playerData[playerId].inventory.slots[callback.inventorySlot].isUsed = false
@@ -592,12 +595,8 @@ function OnPlayerClick(callback)
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     local callAction = {
-        ["placingAnchor"] = function(playerId, position)
-            PlaceAnchor(playerId, position)
-        end,
-        ["connectingWinch"] = function(playerId, position)
-            SelectConnectionPoint(playerId, position)
-        end
+        ["placingAnchor"] = PlaceAnchor,
+        ["connectingWinch"] = SelectConnectionPoint
     }
     if callAction[playerData[playerId].action] then
         callAction[playerData[playerId].action](playerId, position)
@@ -652,7 +651,7 @@ function OnPlayerInventoryLeft(playerId)
     -- update use-item box for new selected slot
     EnsureUseItemBox(playerId)
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
-            visualizer.Despawn()
+        visualizer.Despawn()
     end
     playerData[playerId].selectedConnectionPoint = nil
     playerData[playerId].connectionPoints = {}
@@ -671,7 +670,7 @@ function OnPlayerInventoryRight(playerId)
     UI.UpdateInventoryMessage(playerId)
     EnsureUseItemBox(playerId)
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
-            visualizer.Despawn()
+        visualizer.Despawn()
     end
     playerData[playerId].selectedConnectionPoint = nil
     playerData[playerId].connectionPoints = {}
@@ -682,7 +681,8 @@ function OnPlayerOpenCloseInventory(playerId)
     local inventory = playerData[playerId].inventory
     inventory.isOpen = not inventory.isOpen
     if inventory.isOpen then
-        playerData[playerId].ui.inventoryBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Inventory", "", math.huge)
+        playerData[playerId].ui.inventoryBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Inventory", "",
+            math.huge)
     else
         tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.inventoryBoxId)
         playerData[playerId].ui.inventoryBoxId = nil
@@ -694,7 +694,7 @@ function OnPlayerOpenCloseInventory(playerId)
     EnsureUseItemBox(playerId)
     playerData[playerId].action = "none"
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
-            visualizer.Despawn()
+        visualizer.Despawn()
     end
     playerData[playerId].selectedConnectionPoint = nil
     playerData[playerId].connectionPoints = {}
@@ -704,9 +704,9 @@ function OnPlayerUseItem(playerId)
     if playerData[playerId].input.chatOpen then return end
     if not playerData[playerId].inventory.isOpen then return end
 
-    playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot].type.onUseCallback(playerId, playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot])
+    playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot].type.onUseCallback(playerId,
+        playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot])
+    UI.UpdateInventoryMessage(playerId)
 end
 
 --#endregion
-
-
