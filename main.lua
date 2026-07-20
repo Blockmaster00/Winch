@@ -120,22 +120,15 @@ local KEYBINDS = {
 }
 
 local sessionSettings = {
-    maxInventorySlots = 4
+    maxInventorySlots = 4,
+    connectionRange = 50
 }
 
 local playerData = {}
 
 local spawnedObjects = {}
 
-local ITEM_TYPES = {}
 
-UI.Setup({
-    playerData = playerData,
-    sessionSettings = sessionSettings,
-    KEYBINDS = KEYBINDS,
-    Winch = Winch,
-    ITEM_TYPES = ITEM_TYPES
-})
 
 function UseAnchor(playerId, anchorItem)
     if anchorItem.isUsed then
@@ -190,7 +183,7 @@ function UseWinch(playerId, winchItem)
     end
 end
 
-ITEM_TYPES = {
+local ITEM_TYPES = {
     anchor = {
         name = "Anchor",
         onUseCallback = UseAnchor, -- function that puts the player into anchor place mode or gets player out of this place mode
@@ -203,6 +196,13 @@ ITEM_TYPES = {
     }
 }
 
+UI.Setup({
+    playerData = playerData,
+    sessionSettings = sessionSettings,
+    KEYBINDS = KEYBINDS,
+    Winch = Winch,
+    ITEM_TYPES = ITEM_TYPES
+})
 
 function PlayerUpdate(player)
     local playerId = player.playerId
@@ -272,7 +272,7 @@ function SelectConnectionPoint(playerId, position)
 
         local playerStructure = tm.players.OccupiedStructure(playerId)
         local connectionPoints = GetAllConnectionPointsInRange(
-            GetConnectionPointPosition(playerData[playerId].selectedConnectionPoint), 50, { playerStructure })
+            GetConnectionPointPosition(playerData[playerId].selectedConnectionPoint), { playerStructure })
 
         for key, connectionPoint in ipairs(connectionPoints) do
             local pos = GetConnectionPointPosition(connectionPoint)
@@ -430,8 +430,8 @@ end
 tm.input.OnPlayerKeyDown.add(PlayerKeyDown)
 tm.input.OnPlayerKeyUp.add(PlayerKeyUp)
 
-function GetAllConnectionPointsInRange(pos, range, excludedStructures)
-    range = range or 50
+function GetAllConnectionPointsInRange(pos, excludedStructures)
+    local range = sessionSettings.connectionRange
     excludedStructures = excludedStructures or {}
     local playerList = tm.players.CurrentPlayers()
     local connectionPoints = {}
@@ -586,7 +586,6 @@ function OnWinchSnap(callback)
 end
 
 function OnPlayerClick(callback)
-    tm.os.Log("OnPlayerClick: " .. callback.playerId)
     local playerId = callback.playerId
     local position = tm.vector3.Create(callback.value)
     if playerData[playerId].input.chatOpen then return end
@@ -679,7 +678,6 @@ function OnPlayerInventoryRight(playerId)
 end
 
 function OnPlayerOpenCloseInventory(playerId)
-    tm.os.Log("OnPlayerOpenCloseInventory: " .. playerId)
     if playerData[playerId].input.chatOpen then return end
     local inventory = playerData[playerId].inventory
     inventory.isOpen = not inventory.isOpen
