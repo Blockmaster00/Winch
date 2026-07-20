@@ -1,4 +1,5 @@
 ---@class Winch
+---@field playerId number
 ---@field origin ModBlock
 ---@field target ModBlock|ModGameObject
 ---@field length number
@@ -14,22 +15,33 @@ Winch.CONNECTION_POINT = {
 }
 Winch.MODEL = "ropeModel"
 Winch.TEXTURE = "ropeTexture"
+Winch.COLORS_BY_PLAYER = {
+    [0] = "cyan",
+    [1] = "orange",
+    [2] = "neon",
+    [3] = "blue",
+    [4] = "yellow",
+    [5] = "purple",
+    [6] = "pastel",
+    [7] = "pink",
+}
 Winch.strength = 10
 Winch.elasticity = 150
 Winch.speed = 1
 tm.physics.AddMesh("assets/winch/winch.obj", Winch.MODEL)
 tm.physics.AddTexture("assets/winch/winch.png", Winch.TEXTURE)
-tm.physics.AddTexture("assets/winch/winch_yellow.png", Winch.TEXTURE .. "_yellow")
---tm.physics.AddTexture("assets/winch/winch_orange.png", Winch.TEXTURE .. "_orange") ...
+for k, color in pairs(Winch.COLORS_BY_PLAYER) do
+    tm.physics.AddTexture("assets/winch/winch" .. "_" .. color .. ".png", Winch.TEXTURE .. "-" .. color)
+end
 
-
-
+---@param playerId number
 ---@param origin ModBlock
 ---@param target ModBlock|ModGameObject
 ---@param strength number|nil
 ---@param elasticity number|nil
-function Winch.new(origin, target, strength, elasticity, speed)
+function Winch.new(playerId,origin, target, strength, elasticity, speed)
     local self = setmetatable({
+        playerId = playerId,
         origin = origin,
         target = target,
         strength = strength,
@@ -125,5 +137,17 @@ function Winch:AddOnSnapCallback(playerId, callbackFunction, callbackData)
     self.callbackData = callbackData
     self.callbackData.playerId = playerId
 end
+
+function Winch:Highlight()
+    tm.os.Log(self.playerId)
+    local color = Winch.COLORS_BY_PLAYER[self.playerId]
+    tm.os.Log(color)
+    self.ropeObject.SetTexture(Winch.TEXTURE .. "-" .. color)
+end
+
+function Winch:RemoveHighlight()
+    self.ropeObject.SetTexture(Winch.TEXTURE)
+end
+
 
 return Winch

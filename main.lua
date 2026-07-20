@@ -1,6 +1,6 @@
 tm.os.SetModTargetDeltaTime(1 / 60)
 
-tm.physics.AddTexture("assets/Winch_Icon.png", "Winch_Icon")
+tm.physics.AddTexture("assets/icons/Winch_Icon.png", "Winch_Icon")
 
 local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
@@ -287,7 +287,7 @@ function SelectConnectionPoint(playerId, position)
     else
         local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
         local defaultWinchSettings = playerData[playerId].settings.defaultWinch
-        selectedInventorySlot.objectReference = Winch.new(playerData[playerId].selectedConnectionPoint, closest.point,
+        selectedInventorySlot.objectReference = Winch.new(playerId, playerData[playerId].selectedConnectionPoint, closest.point,
             defaultWinchSettings.strength,
             defaultWinchSettings.elasticity,
             defaultWinchSettings.speed
@@ -298,6 +298,10 @@ function SelectConnectionPoint(playerId, position)
             { inventorySlot = playerData[playerId].inventory.selectedSlot })
         selectedInventorySlot.objectReference:update()
         selectedInventorySlot.isUsed = true
+        -- Highlight the newly created winch
+        if selectedInventorySlot.objectReference.ropeObject then
+            selectedInventorySlot.objectReference:Highlight()
+        end
 
         UI.UpdateInventoryMessage(playerId)
         EnsureUseItemBox(playerId)
@@ -566,6 +570,27 @@ function RemoveByValue(t, value)
     return false
 end
 
+-- Update highlighting when selected item changes
+function UpdateSelectionHighlight(playerId, oldSlotIndex, newSlotIndex)
+    local inventory = playerData[playerId].inventory
+    local oldSlot = inventory.slots[oldSlotIndex]
+    local newSlot = inventory.slots[newSlotIndex]
+    
+    -- Remove highlight from old item
+    if oldSlot and oldSlot.type == ITEM_TYPES.winch and oldSlot.isUsed and oldSlot.objectReference then
+        if oldSlot.objectReference.ropeObject then
+            oldSlot.objectReference:RemoveHighlight()
+        end
+    end
+    
+    -- Add highlight to new item
+    if newSlot and newSlot.type == ITEM_TYPES.winch and newSlot.isUsed and newSlot.objectReference then
+        if newSlot.objectReference.ropeObject then
+            newSlot.objectReference:Highlight()
+        end
+    end
+end
+
 -- Ensure the "use item" subtle message is shown/hidden and updated
 function EnsureUseItemBox(playerId)
     local ui = playerData[playerId].ui
@@ -593,7 +618,31 @@ function EnsureUseItemBox(playerId)
     end
 end
 
+
 --#region PlayerCallback
+
+function OnPlayerBusy(player)
+    local playerId = player.playerId
+    if playerData[playerId].inventory.isOpen then
+        playerData[playerId].inventory.isOpen = false
+        tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.inventoryBoxId)
+        playerData[playerId].ui.inventoryBoxId = nil
+        tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.useItemBoxId)
+        playerData[playerId].ui.useItemBoxId = nil
+            UI.UpdateInventoryMessage(playerId)
+        -- show/hide use-item box depending on selected slot
+        EnsureUseItemBox(playerId)
+        playerData[playerId].action = "none"
+        for block, visualizer in pairs(playerData[playerId].connectionPoints) do
+            visualizer.Despawn()
+        end
+        playerData[playerId].selectedConnectionPoint = nil
+        playerData[playerId].connectionPoints = {}
+    end
+end
+tm.players.OnPlayerDied.add(OnPlayerBusy)
+tm.players.OnPlayerEnterBuilder.add(OnPlayerBusy)
+
 function OnWinchSnap(callback)
     local playerId = callback.playerId
     local stretchedDistance = callback.stretchedDistance
@@ -665,13 +714,14 @@ function OnPlayerInventoryLeft(playerId)
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     local inventory = playerData[playerId].inventory
+    local oldSlotIndex = inventory.selectedSlot
     inventory.selectedSlot = inventory.selectedSlot - 1
     if inventory.selectedSlot < 1 then
         inventory.selectedSlot = #inventory.slots
     end
-    playerData[playerId].action = "none" -- maybe requires cleanup if a action gets stopped prematurely
+    playerData[playerId].action = "none"
+    UpdateSelectionHighlight(playerId, oldSlotIndex, inventory.selectedSlot)
     UI.UpdateInventoryMessage(playerId)
-    -- update use-item box for new selected slot
     EnsureUseItemBox(playerId)
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
         visualizer.Despawn()
@@ -685,11 +735,13 @@ function OnPlayerInventoryRight(playerId)
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
 
     local inventory = playerData[playerId].inventory
+    local oldSlotIndex = inventory.selectedSlot
     inventory.selectedSlot = inventory.selectedSlot + 1
     if inventory.selectedSlot > #inventory.slots then
         inventory.selectedSlot = 1
     end
-    playerData[playerId].action = "none" -- maybe requires cleanup if a action gets stopped prematurely
+    playerData[playerId].action = "none"
+    UpdateSelectionHighlight(playerId, oldSlotIndex, inventory.selectedSlot)
     UI.UpdateInventoryMessage(playerId)
     EnsureUseItemBox(playerId)
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
