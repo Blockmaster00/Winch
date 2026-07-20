@@ -400,6 +400,29 @@ end
 
 tm.players.OnPlayerJoined.add(OnPlayerJoined)
 
+function OnPlayerLeft(player)
+    local playerId = player.playerId
+    for block, visualizer in pairs(playerData[playerId].connectionPoints) do
+        visualizer.Despawn()
+    end
+    for key, item in ipairs(playerData[playerId].inventory.slots) do
+        if item.type == ITEM_TYPES.winch and item.isUsed then
+            item.objectReference:remove()
+            item.objectReference = nil
+            item.isUsed = false
+        elseif item.type == ITEM_TYPES.anchor and item.isUsed then
+            RemoveByValue(spawnedObjects, item.objectReference.object)
+            item.objectReference:remove()
+            item.objectReference = nil
+            item.isUsed = false
+        end
+    end
+    playerData[playerId].connectionPoints = {}
+    playerData[playerId].selectedConnectionPoint = nil
+    playerData[playerId] = nil
+end
+tm.players.OnPlayerLeft.add(OnPlayerLeft)
+
 function PlayerKeyDown(player, keyName)
     local keyBinds = playerData[player.playerId].settings.keybinds
     local keyBindFunctions = {
