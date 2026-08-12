@@ -287,9 +287,10 @@ function SelectConnectionPoint(playerId, position)
     else
         local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
         local defaultWinchSettings = playerData[playerId].settings.defaultWinch
-        selectedInventorySlot.objectReference = Winch.new(playerId, playerData[playerId].selectedConnectionPoint, closest.point,
-            defaultWinchSettings.strength,
-            defaultWinchSettings.elasticity,
+        selectedInventorySlot.objectReference = Winch.new(playerId, playerData[playerId].selectedConnectionPoint,
+            closest.point,
+            defaultWinchSettings.stiffness,
+            defaultWinchSettings.ductility,
             defaultWinchSettings.speed
         )
 
@@ -391,8 +392,8 @@ function OnPlayerJoined(player)
                 }
             },
             defaultWinch = {
-                strength = Winch.strength,
-                elasticity = Winch.elasticity,
+                stiffness = Winch.stiffness,
+                ductility = Winch.ductility,
                 speed = Winch.speed
             }
         }
@@ -425,6 +426,7 @@ function OnPlayerLeft(player)
     playerData[playerId].selectedConnectionPoint = nil
     playerData[playerId] = nil
 end
+
 tm.players.OnPlayerLeft.add(OnPlayerLeft)
 
 function PlayerKeyDown(player, keyName)
@@ -575,14 +577,14 @@ function UpdateSelectionHighlight(playerId, oldSlotIndex, newSlotIndex)
     local inventory = playerData[playerId].inventory
     local oldSlot = inventory.slots[oldSlotIndex]
     local newSlot = inventory.slots[newSlotIndex]
-    
+
     -- Remove highlight from old item
     if oldSlot and oldSlot.type == ITEM_TYPES.winch and oldSlot.isUsed and oldSlot.objectReference then
         if oldSlot.objectReference.ropeObject then
             oldSlot.objectReference:RemoveHighlight()
         end
     end
-    
+
     -- Add highlight to new item
     if newSlot and newSlot.type == ITEM_TYPES.winch and newSlot.isUsed and newSlot.objectReference then
         if newSlot.objectReference.ropeObject then
@@ -618,7 +620,6 @@ function EnsureUseItemBox(playerId)
     end
 end
 
-
 --#region PlayerCallback
 
 function OnPlayerBusy(player)
@@ -629,7 +630,7 @@ function OnPlayerBusy(player)
         playerData[playerId].ui.inventoryBoxId = nil
         tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.useItemBoxId)
         playerData[playerId].ui.useItemBoxId = nil
-            UI.UpdateInventoryMessage(playerId)
+        UI.UpdateInventoryMessage(playerId)
         -- show/hide use-item box depending on selected slot
         EnsureUseItemBox(playerId)
         playerData[playerId].action = "none"
@@ -640,6 +641,7 @@ function OnPlayerBusy(player)
         playerData[playerId].connectionPoints = {}
     end
 end
+
 tm.players.OnPlayerDied.add(OnPlayerBusy)
 tm.players.OnPlayerEnterBuilder.add(OnPlayerBusy)
 

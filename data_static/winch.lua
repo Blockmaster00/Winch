@@ -3,8 +3,8 @@
 ---@field origin ModBlock
 ---@field target ModBlock|ModGameObject
 ---@field length number
----@field strength number value by which the magnitude of the force will be calculated
----@field elasticity number percentage at which the connection will snap
+---@field stiffness number value by which the magnitude of the force will be calculated
+---@field ductility number percentage at which the connection will snap
 ---@field ropeObject ModGameObject
 ---@field targetType string
 local Winch = {}
@@ -25,8 +25,8 @@ Winch.COLORS_BY_PLAYER = {
     [6] = "pastel",
     [7] = "pink",
 }
-Winch.strength = 10
-Winch.elasticity = 150
+Winch.stiffness = 10
+Winch.ductility = 150
 Winch.speed = 1
 tm.physics.AddMesh("assets/winch/winch.obj", Winch.MODEL)
 tm.physics.AddTexture("assets/winch/winch.png", Winch.TEXTURE)
@@ -37,15 +37,15 @@ end
 ---@param playerId number
 ---@param origin ModBlock
 ---@param target ModBlock|ModGameObject
----@param strength number|nil
----@param elasticity number|nil
-function Winch.new(playerId,origin, target, strength, elasticity, speed)
+---@param stiffness number|nil
+---@param ductility number|nil
+function Winch.new(playerId, origin, target, stiffness, ductility, speed)
     local self = setmetatable({
         playerId = playerId,
         origin = origin,
         target = target,
-        strength = strength,
-        elasticity = elasticity,
+        stiffness = stiffness,
+        ductility = ductility,
         speed = speed,
         targetType = target.ToString()
     }, { __index = Winch })
@@ -82,7 +82,7 @@ end
 
 function Winch:_applyForces(originPos, targetPos, stretchedDistance)
     local ropeDirection = targetPos - originPos
-    local force = self.strength * stretchedDistance
+    local force = self.stiffness * stretchedDistance
     local targetType = self.target.ToString()
     if targetType == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
         if self.target.GetIsStatic() then
@@ -109,7 +109,7 @@ end
 ---@param stretchedDistance number
 ---@return boolean
 function Winch:hasSnapped(stretchedDistance)
-    if stretchedDistance > self.length * (self.elasticity / 100) then
+    if stretchedDistance > self.length * (self.ductility / 100) then
         if self.OnSnapCallback ~= nil then
             self.callbackData.stretchedDistance = stretchedDistance
             self.OnSnapCallback(self.callbackData)
@@ -148,6 +148,5 @@ end
 function Winch:RemoveHighlight()
     self.ropeObject.SetTexture(Winch.TEXTURE)
 end
-
 
 return Winch
