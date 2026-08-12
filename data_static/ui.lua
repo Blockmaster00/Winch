@@ -83,11 +83,22 @@ local function DrawSettings(playerId, data)
         UI.UpdateUi(playerId, "settings")
     end)
 
+    tm.playerUI.AddUILabel(playerId, "lblTroubleshooting", "- Troubleshooting -")
+
+    local input = playerData.input
+    tm.playerUI.AddUILabel(playerId, "lblChatOpenState", "Chat is " .. "open" and input.chatOpen or "closed" .. ".")
+    tm.playerUI.AddUIButton(playerId, "btnResetChatOpenState", "reset internal chat-state", function()
+        input.chatOpen = false
+        UI.UpdateUi(playerId, "settings")
+    end)
+
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
     if not tm.players.IsPlayerAdministrator(playerId) then
         return
     end
-    tm.playerUI.AddUILabel(playerId, "lblSessionSettingsHeading", "- session settings -")
+
+    tm.playerUI.AddUILabel(playerId, "lblSessionSettingsHeading", "- Session Settings -")
+
     tm.playerUI.AddUILabel(playerId, "lblMaxInventorySlots", "max inventory slots:")
     tm.playerUI.AddUIText(playerId, "txtMaxInventorySlots", sessionSettings.maxInventorySlots, function(UICallbackData)
         local value = tonumber(UICallbackData.value)
@@ -193,16 +204,18 @@ local function DrawLoadout(playerId, data)
                     UI.UpdateUi(playerId, "configureWinch", { inventorySlot = key })
                 end)
             end
-            tm.playerUI.AddUIButton(playerId, "btnChangeLoadoutSlot", COLORS.GREEN .. "Change Type" .. COLORS.RESET, function()
-                if switchingItemType then
-                    UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key, switchingItemType = false })
-                else
-                    UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key, switchingItemType = true })
-                end
-            end)
+            tm.playerUI.AddUIButton(playerId, "btnChangeLoadoutSlot", COLORS.GREEN .. "Change Type" .. COLORS.RESET,
+                function()
+                    if switchingItemType then
+                        UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key, switchingItemType = false })
+                    else
+                        UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key, switchingItemType = true })
+                    end
+                end)
             if switchingItemType then
                 for itemTypeKey, itemType in pairs(ITEM_TYPES) do
-                    tm.playerUI.AddUIButton(playerId, "btnChangeLoadoutSlotTo" .. itemTypeKey, COLORS.BLUE .. itemType.name .. COLORS.RESET,
+                    tm.playerUI.AddUIButton(playerId, "btnChangeLoadoutSlotTo" .. itemTypeKey,
+                        COLORS.BLUE .. itemType.name .. COLORS.RESET,
                         function()
                             inventory.slots[key].type = itemType
                             inventory.slots[key].isUsed = false
@@ -262,7 +275,6 @@ function DrawConfigureWinch(playerId, data)
         winch.speed = tonumber(UICallbackData.value)
     end)
 end
-
 
 function UI.UpdateUi(playerId, uiPage, data)
     data = data or {}
