@@ -290,7 +290,7 @@ function SelectConnectionPoint(playerId, position)
         selectedInventorySlot.objectReference = Winch.new(playerId, playerData[playerId].selectedConnectionPoint,
             closest.point,
             defaultWinchSettings.stiffness,
-            defaultWinchSettings.ductility,
+            defaultWinchSettings.maxStretch,
             defaultWinchSettings.speed
         )
 
@@ -393,7 +393,7 @@ function OnPlayerJoined(player)
             },
             defaultWinch = {
                 stiffness = Winch.stiffness,
-                ductility = Winch.ductility,
+                maxStretch = Winch.maxStretch,
                 speed = Winch.speed
             }
         }

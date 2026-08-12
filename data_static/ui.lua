@@ -58,13 +58,13 @@ local function DrawSettings(playerId, data)
         end
         settings.defaultWinch.stiffness = tonumber(UICallbackData.value)
     end)
-    tm.playerUI.AddUILabel(playerId, "lblWinchDuctility", "Ductility:")
-    tm.playerUI.AddUIText(playerId, "txtWinchDuctility", settings.defaultWinch.ductility, function(UICallbackData)
+    tm.playerUI.AddUILabel(playerId, "lblWinchMaxStretch", "Max Stretch:")
+    tm.playerUI.AddUIText(playerId, "txtWinchMaxStretch", settings.defaultWinch.maxStretch, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 100 then
             tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 100", 5)
             return
         end
-        settings.defaultWinch.ductility = tonumber(UICallbackData.value)
+        settings.defaultWinch.maxStretch = tonumber(UICallbackData.value)
     end)
     tm.playerUI.AddUILabel(playerId, "lblWinchSpeed", "Speed:")
     tm.playerUI.AddUIText(playerId, "txtWinchSpeed", settings.defaultWinch.speed, function(UICallbackData)
@@ -77,7 +77,7 @@ local function DrawSettings(playerId, data)
     tm.playerUI.AddUIButton(playerId, "btnResetWinchToDefault", "Reset to default", function()
         settings.defaultWinch = {
             stiffness = Winch.stiffness,
-            ductility = Winch.ductility,
+            maxStretch = Winch.maxStretch,
             speed = Winch.speed
         }
         UI.UpdateUi(playerId, "settings")
@@ -258,13 +258,13 @@ function DrawConfigureWinch(playerId, data)
         end
         winch.stiffness = tonumber(UICallbackData.value)
     end)
-    tm.playerUI.AddUILabel(playerId, "lblWinchDuctility", "Ductility:")
-    tm.playerUI.AddUIText(playerId, "txtWinchDuctility", winch.ductility, function(UICallbackData)
+    tm.playerUI.AddUILabel(playerId, "lblWinchMaxStretch", "Max Stretch:")
+    tm.playerUI.AddUIText(playerId, "txtWinchMaxStretch", winch.maxStretch, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 100 then
             tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 100", 5)
             return
         end
-        winch.ductility = tonumber(UICallbackData.value)
+        winch.maxStretch = tonumber(UICallbackData.value)
     end)
     tm.playerUI.AddUILabel(playerId, "lblWinchSpeed", "Speed:")
     tm.playerUI.AddUIText(playerId, "txtWinchSpeed", winch.speed, function(UICallbackData)

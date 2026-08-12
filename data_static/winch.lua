@@ -4,7 +4,7 @@
 ---@field target ModBlock|ModGameObject
 ---@field length number
 ---@field stiffness number value by which the magnitude of the force will be calculated
----@field ductility number percentage at which the connection will snap
+---@field maxStretch number percentage at which the connection will snap
 ---@field ropeObject ModGameObject
 ---@field targetType string
 local Winch = {}
@@ -26,7 +26,7 @@ Winch.COLORS_BY_PLAYER = {
     [7] = "pink",
 }
 Winch.stiffness = 10
-Winch.ductility = 150
+Winch.maxStretch = 150
 Winch.speed = 1
 tm.physics.AddMesh("assets/winch/winch.obj", Winch.MODEL)
 tm.physics.AddTexture("assets/winch/winch.png", Winch.TEXTURE)
@@ -38,14 +38,14 @@ end
 ---@param origin ModBlock
 ---@param target ModBlock|ModGameObject
 ---@param stiffness number|nil
----@param ductility number|nil
-function Winch.new(playerId, origin, target, stiffness, ductility, speed)
+---@param maxStretch number|nil
+function Winch.new(playerId, origin, target, stiffness, maxStretch, speed)
     local self = setmetatable({
         playerId = playerId,
         origin = origin,
         target = target,
         stiffness = stiffness,
-        ductility = ductility,
+        maxStretch = maxStretch,
         speed = speed,
         targetType = target.ToString()
     }, { __index = Winch })
@@ -109,7 +109,7 @@ end
 ---@param stretchedDistance number
 ---@return boolean
 function Winch:hasSnapped(stretchedDistance)
-    if stretchedDistance > self.length * (self.ductility / 100) then
+    if stretchedDistance > self.length * (self.maxStretch / 100) then
         if self.OnSnapCallback ~= nil then
             self.callbackData.stretchedDistance = stretchedDistance
             self.OnSnapCallback(self.callbackData)
