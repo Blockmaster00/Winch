@@ -85,8 +85,8 @@ local function DrawSettings(playerId, data)
 
     tm.playerUI.AddUILabel(playerId, "lblTroubleshooting", "- Troubleshooting -")
 
-    local input = playerData.input
-    tm.playerUI.AddUILabel(playerId, "lblChatOpenState", "Chat is " .. "open" and input.chatOpen or "closed" .. ".")
+    local input = playerData[playerId].input
+    tm.playerUI.AddUILabel(playerId, "lblChatOpenState", "Chat is " .. (input.chatOpen and "open" or "closed") .. ".")
     tm.playerUI.AddUIButton(playerId, "btnResetChatOpenState", "reset internal chat-state", function()
         input.chatOpen = false
         UI.UpdateUi(playerId, "settings")

@@ -709,6 +709,9 @@ end
 
 function OnOpenCloseChat(playerId)
     playerData[playerId].input.chatOpen = not playerData[playerId].input.chatOpen
+    if playerData[playerId].ui.page == "settings" then
+        UI.UpdateUi(playerId, "settings")
+    end
 end
 
 function OnPlayerInventoryLeft(playerId)
