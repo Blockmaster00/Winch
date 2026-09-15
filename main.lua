@@ -6,6 +6,8 @@ local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
 local UI = tm.os.DoFile("ui")
 
+local SAVING = tm.os.DoFile("saving")
+
 local KEYBINDS = {
     ["`"] = true,
     ["1"] = true,
@@ -205,6 +207,9 @@ UI.Setup({
     Winch = Winch,
     ITEM_TYPES = ITEM_TYPES
 })
+SAVING.Setup({
+    ITEM_TYPES = ITEM_TYPES
+})
 
 function PlayerUpdate(player)
     local playerId = player.playerId
@@ -212,12 +217,12 @@ function PlayerUpdate(player)
     local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
 
     for key, item in ipairs(inventory.slots) do
-        if item.type == ITEM_TYPES.winch and item.isUsed then
+        if inventory.loadout[key] == ITEM_TYPES.winch and item.isUsed then
             item.objectReference:update()
         end
     end
 
-    if selectedInventorySlot.type == ITEM_TYPES.winch and selectedInventorySlot.isUsed then
+    if inventory.loadout[playerData[playerId].inventory.selectedSlot] == ITEM_TYPES.winch and selectedInventorySlot.isUsed then
         local inputs = playerData[playerId].input
         if inputs.isExtending then
             selectedInventorySlot.objectReference:extend()
@@ -342,26 +347,28 @@ function OnPlayerJoined(player)
         selectedConnectionPoint = nil,
         action = "none", -- "placingAnchor" | "connectingWinch"
         inventory = {
+            loadout ={
+                ITEM_TYPES.winch,
+                ITEM_TYPES.winch,
+                ITEM_TYPES.anchor,
+                ITEM_TYPES.anchor
+            },
             isOpen = false,
             selectedSlot = 1,
             slots = {
                 {
-                    type = ITEM_TYPES.winch,
                     objectReference = nil,
                     isUsed = false,
                 },
                 {
-                    type = ITEM_TYPES.winch,
                     objectReference = nil,
                     isUsed = false,
                 },
                 {
-                    type = ITEM_TYPES.anchor,
                     objectReference = nil,
                     isUsed = false,
                 },
                 {
-                    type = ITEM_TYPES.anchor,
                     objectReference = nil,
                     isUsed = false,
                 },
@@ -396,8 +403,13 @@ function OnPlayerJoined(player)
                 maxStretch = Winch.maxStretch,
                 speed = Winch.speed
             }
-        }
+        },
+        lastPlayerDataSave = tm.os.GetTime()
     }
+    local playerDataSave = SAVING.loadPlayerData(playerId)
+    playerData[playerId].settings = playerDataSave and playerDataSave.settings or playerData[playerId].settings
+    playerData[playerId].inventory.loadout = playerDataSave and playerDataSave.loadout or playerData[playerId].inventory.loadout
+    SAVING.savePlayerData(playerData)
     UI.UpdateUi(playerId, "main")
 
     tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnOpenCloseChat", "enter")
@@ -411,11 +423,11 @@ function OnPlayerLeft(player)
         visualizer.Despawn()
     end
     for key, item in ipairs(playerData[playerId].inventory.slots) do
-        if item.type == ITEM_TYPES.winch and item.isUsed then
+        if playerData[playerId].inventory.loadout[key] == ITEM_TYPES.winch and item.isUsed then
             item.objectReference:remove()
             item.objectReference = nil
             item.isUsed = false
-        elseif item.type == ITEM_TYPES.anchor and item.isUsed then
+        elseif playerData[playerId].inventory.loadout[key] == ITEM_TYPES.anchor and item.isUsed then
             RemoveByValue(spawnedObjects, item.objectReference.object)
             item.objectReference:remove()
             item.objectReference = nil
@@ -579,14 +591,14 @@ function UpdateSelectionHighlight(playerId, oldSlotIndex, newSlotIndex)
     local newSlot = inventory.slots[newSlotIndex]
 
     -- Remove highlight from old item
-    if oldSlot and oldSlot.type == ITEM_TYPES.winch and oldSlot.isUsed and oldSlot.objectReference then
+    if oldSlot and inventory.loadout[oldSlotIndex] == ITEM_TYPES.winch and oldSlot.isUsed and oldSlot.objectReference then
         if oldSlot.objectReference.ropeObject then
             oldSlot.objectReference:RemoveHighlight()
         end
     end
 
     -- Add highlight to new item
-    if newSlot and newSlot.type == ITEM_TYPES.winch and newSlot.isUsed and newSlot.objectReference then
+    if newSlot and inventory.loadout[newSlotIndex] == ITEM_TYPES.winch and newSlot.isUsed and newSlot.objectReference then
         if newSlot.objectReference.ropeObject then
             newSlot.objectReference:Highlight()
         end
@@ -607,7 +619,7 @@ function EnsureUseItemBox(playerId)
     end
 
     local selectedSlot = inventory.slots[inventory.selectedSlot]
-    if selectedSlot and selectedSlot.type == ITEM_TYPES.winch and selectedSlot.isUsed and selectedSlot.objectReference then
+    if selectedSlot and inventory.loadout[inventory.selectedSlot] == ITEM_TYPES.winch and selectedSlot.isUsed and selectedSlot.objectReference then
         if not ui.useItemBoxId then
             ui.useItemBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "", "", math.huge)
         end
@@ -689,7 +701,7 @@ function OnPlayerPullWinchStart(playerId)
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
     local selectedItem = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
-    if selectedItem.type == ITEM_TYPES.winch and selectedItem.isUsed then
+    if playerData[playerId].inventory.loadout[playerData[playerId].inventory.selectedSlot] == ITEM_TYPES.winch and selectedItem.isUsed then
         playerData[playerId].input.isPulling = true
     end
 end
@@ -698,7 +710,7 @@ function OnPlayerExtendWinchStart(playerId)
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
     local selectedItem = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
-    if selectedItem.type == ITEM_TYPES.winch and selectedItem.isUsed then
+    if playerData[playerId].inventory.loadout[playerData[playerId].inventory.selectedSlot] == ITEM_TYPES.winch and selectedItem.isUsed then
         playerData[playerId].input.isExtending = true
     end
 end
@@ -792,7 +804,7 @@ function OnPlayerUseItem(playerId)
     if playerData[playerId].input.chatOpen then return end
     if not playerData[playerId].inventory.isOpen then return end
 
-    playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot].type.onUseCallback(playerId,
+    playerData[playerId].inventory.loadout[playerData[playerId].inventory.selectedSlot].onUseCallback(playerId,
         playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot])
     UI.UpdateInventoryMessage(playerId)
 end

@@ -189,7 +189,7 @@ local function DrawLoadout(playerId, data)
     for key, slot in pairs(inventory.slots) do
         local isFocused = focusedLoadoutSlot == key
         tm.playerUI.AddUIButton(playerId, "btnInventorySlot" .. key,
-            (isFocused and COLORS.PURPLE or "") .. slot.type.name .. " " .. key .. (isFocused and COLORS.RESET or ""),
+            (isFocused and COLORS.PURPLE or "") .. inventory.loadout[key].name .. " " .. key .. (isFocused and COLORS.RESET or ""),
             function()
                 if focusedLoadoutSlot == key then
                     focusedLoadoutSlot = nil
@@ -199,7 +199,7 @@ local function DrawLoadout(playerId, data)
                 UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key })
             end)
         if isFocused then
-            if slot.type == ITEM_TYPES.winch and slot.objectReference then
+            if inventory.loadout[key] == ITEM_TYPES.winch and slot.objectReference then
                 tm.playerUI.AddUIButton(playerId, "btnConfigureWinch", "Configure", function()
                     UI.UpdateUi(playerId, "configureWinch", { inventorySlot = key })
                 end)
@@ -217,7 +217,7 @@ local function DrawLoadout(playerId, data)
                     tm.playerUI.AddUIButton(playerId, "btnChangeLoadoutSlotTo" .. itemTypeKey,
                         COLORS.BLUE .. itemType.name .. COLORS.RESET,
                         function()
-                            inventory.slots[key].type = itemType
+                            inventory.loadout[key] = itemType
                             inventory.slots[key].isUsed = false
                             inventory.slots[key].objectReference = nil
                             UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key, switchingItemType = false })
@@ -232,7 +232,8 @@ local function DrawLoadout(playerId, data)
     end
     if #inventory.slots < sessionSettings.maxInventorySlots then
         tm.playerUI.AddUIButton(playerId, "btnAddLoadoutSlot", COLORS.GREEN .. "Add" .. COLORS.RESET, function()
-            table.insert(inventory.slots, { type = ITEM_TYPES.winch, isUsed = false, objectReference = nil })
+            table.insert(inventory.slots, { isUsed = false, objectReference = nil })
+            table.insert(inventory.loadout, ITEM_TYPES.winch)
             UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = #inventory.slots, switchingItemType = true })
         end)
     end
@@ -299,7 +300,7 @@ end
 function UI.UpdateInventoryMessage(playerId)
     local inventory = playerData[playerId].inventory
     local selectedSlot = inventory.slots[inventory.selectedSlot]
-    local header = inventory.selectedSlot .. " - " .. selectedSlot.type.name
+    local header = inventory.selectedSlot .. " - " .. inventory.loadout[inventory.selectedSlot].name
     local action = selectedSlot.isUsed and "Retrieve" or "Use"
     if playerData[playerId].action == "connectingWinch" then
         action = "Connecting"
