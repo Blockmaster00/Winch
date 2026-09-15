@@ -57,6 +57,24 @@ function Winch.new(playerId, origin, target, stiffness, maxStretch, speed)
 end
 
 function Winch:update()
+    if not self.origin.Exists() then
+        self:remove()
+        if self.OnSnapCallback ~= nil then
+            self.callbackData = self.callbackData or {}
+            self.callbackData.info = "Winch block no longer exists."
+            self.OnSnapCallback(self.callbackData)
+        end
+        return
+    end
+    if not self.target.Exists() then
+        self:remove()
+        if self.OnSnapCallback ~= nil then
+            self.callbackData = self.callbackData or {}
+            self.callbackData.info = "Target object no longer exists."
+            self.OnSnapCallback(self.callbackData)
+        end
+        return
+    end
     local originPos = self.origin.GetPosition()
     local targetPos = self:_getTargetPos()
     local ropeLength = tm.vector3.Distance(originPos, targetPos)

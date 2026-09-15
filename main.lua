@@ -647,14 +647,22 @@ tm.players.OnPlayerEnterBuilder.add(OnPlayerBusy)
 
 function OnWinchSnap(callback)
     local playerId = callback.playerId
-    local stretchedDistance = callback.stretchedDistance
+
+    if callback.info then
+        tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!",
+            callback.info, 5)
+    else
+        local stretchedDistance = callback.stretchedDistance
+        tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!",
+            "stretched distance: " .. string.format("%.2f", stretchedDistance), 5)
+    end
+
     -- remove use-item box if visible for this player
     if playerData[playerId].ui.useItemBoxId then
         tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.useItemBoxId)
         playerData[playerId].ui.useItemBoxId = nil
     end
-    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!",
-        "stretched distance: " .. string.format("%.2f", stretchedDistance), 5)
+
     playerData[playerId].inventory.slots[callback.inventorySlot].objectReference = nil
     playerData[playerId].inventory.slots[callback.inventorySlot].isUsed = false
     playerData[playerId].input.isPulling = false
