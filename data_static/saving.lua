@@ -1,14 +1,20 @@
 local SAVING = {}
 
+local PLAYERDATA_PATH = "PlayerData.json"
+local SESSIONDATA_PATH = "SessionData.json"
+
+SAVING.lastPlayerDataSave = tm.os.GetTime()
+
+
 function SAVING.Setup(config)
     ITEM_TYPES = config.ITEM_TYPES
 end
+
 -- responsible for saving Player specific data to a JSON file, and loading it back into the game when the player joins
 -- relevant playerData:
 -- inventoryloadout
 -- settings
 
-local PLAYERDATA_PATH = "PlayerData.json"
 
 local function loadPlayerSaves()
     local success, data = pcall(function()
@@ -43,7 +49,7 @@ local function serializeItemType(itemType)
         return nil
     end
 
-    return {name = itemType.name}
+    return { name = itemType.name }
 end
 
 local function deserializeItemType(itemData)
@@ -102,7 +108,8 @@ function SAVING.savePlayerData(playerDataTable)
     end
 
     tm.os.WriteAllText_Dynamic(PLAYERDATA_PATH, json.serialize(playerSaves))
-    tm.playerUI.AddSubtleMessageForAllPlayers("Player data saved", "Player data saved", 5)
+    SAVING.lastPlayerDataSave = tm.os.GetTime()
+    tm.playerUI.AddSubtleMessageForAllPlayers("Player data saved", "Player data saved", 1)
     tm.os.Log("Player data saved")
 end
 
@@ -123,7 +130,19 @@ function SAVING.loadPlayerData(playerId)
     return loadedSave
 end
 
+function SAVING.saveSessionSettings(sessionData)
+    tm.os.WriteAllText_Dynamic(SESSIONDATA_PATH, json.serialize(sessionData))
+    tm.os.Log("Session data saved")
+end
 
+function SAVING.loadSessionSettings()
+    local sessionDataText = tm.os.ReadAllText_Dynamic(SESSIONDATA_PATH)
+    if sessionDataText == nil then
+        return nil
+    end
 
+    local sessionData = json.deserialize(sessionDataText)
+    return sessionData
+end
 
 return SAVING

@@ -5,6 +5,7 @@ local sessionSettings
 local KEYBINDS
 local Winch
 local ITEM_TYPES
+local SAVING
 
 local COLORS = {
     GREEN = "<color=" .. "#C7D66D" .. ">",
@@ -26,6 +27,7 @@ function UI.Setup(config)
     KEYBINDS = config.KEYBINDS
     Winch = config.Winch
     ITEM_TYPES = config.ITEM_TYPES
+    SAVING = config.SAVING
 end
 
 local function DrawMainMenu(playerId, data)
@@ -93,31 +95,57 @@ local function DrawSettings(playerId, data)
     end)
 
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
-    if not tm.players.IsPlayerAdministrator(playerId) then
-        return
-    end
 
     tm.playerUI.AddUILabel(playerId, "lblSessionSettingsHeading", "- Session Settings -")
 
+    local isAdmin = tm.players.IsPlayerAdministrator(playerId)
+
     tm.playerUI.AddUILabel(playerId, "lblMaxInventorySlots", "max inventory slots:")
-    tm.playerUI.AddUIText(playerId, "txtMaxInventorySlots", sessionSettings.maxInventorySlots, function(UICallbackData)
-        local value = tonumber(UICallbackData.value)
-        if value == nil or value <= 0 or value > 9 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number between 1 and 9", 5)
-            return
-        end
-        sessionSettings.maxInventorySlots = value
-    end)
-    -- connection range
+    if isAdmin then
+        tm.playerUI.AddUIText(playerId, "txtMaxInventorySlots", sessionSettings.maxInventorySlots,
+            function(UICallbackData)
+                local value = tonumber(UICallbackData.value)
+                if value == nil or value <= 0 or value > 9 then
+                    tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value",
+                        "Value must be a number between 1 and 9", 5)
+                    return
+                end
+                sessionSettings.maxInventorySlots = value
+                SAVING.saveSessionSettings(sessionSettings)
+            end)
+    else
+        tm.playerUI.AddUILabel(playerId, "txtMaxInventorySlots", tostring(sessionSettings.maxInventorySlots))
+    end
+
     tm.playerUI.AddUILabel(playerId, "lblConnectionRange", "connection range:")
-    tm.playerUI.AddUIText(playerId, "txtConnectionRange", sessionSettings.connectionRange, function(UICallbackData)
-        local value = tonumber(UICallbackData.value)
-        if value == nil or value <= 0 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
-            return
-        end
-        sessionSettings.connectionRange = value
-    end)
+    if isAdmin then
+        tm.playerUI.AddUIText(playerId, "txtConnectionRange", sessionSettings.connectionRange, function(UICallbackData)
+            local value = tonumber(UICallbackData.value)
+            if value == nil or value <= 0 then
+                tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+                return
+            end
+            sessionSettings.connectionRange = value
+            SAVING.saveSessionSettings(sessionSettings)
+        end)
+    else
+        tm.playerUI.AddUILabel(playerId, "txtConnectionRange", tostring(sessionSettings.connectionRange))
+    end
+
+    tm.playerUI.AddUILabel(playerId, "lblSaveInterval", "save interval (seconds):")
+    if isAdmin then
+        tm.playerUI.AddUIText(playerId, "txtSaveInterval", sessionSettings.saveInterval, function(UICallbackData)
+            local value = tonumber(UICallbackData.value)
+            if value == nil or value <= 0 then
+                tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+                return
+            end
+            sessionSettings.saveInterval = value
+            SAVING.saveSessionSettings(sessionSettings)
+        end)
+    else
+        tm.playerUI.AddUILabel(playerId, "txtSaveInterval", tostring(sessionSettings.saveInterval))
+    end
 end
 
 local function DrawKeybindSettings(playerId, data)
@@ -189,7 +217,8 @@ local function DrawLoadout(playerId, data)
     for key, slot in pairs(inventory.slots) do
         local isFocused = focusedLoadoutSlot == key
         tm.playerUI.AddUIButton(playerId, "btnInventorySlot" .. key,
-            (isFocused and COLORS.PURPLE or "") .. inventory.loadout[key].name .. " " .. key .. (isFocused and COLORS.RESET or ""),
+            (isFocused and COLORS.PURPLE or "") ..
+            inventory.loadout[key].name .. " " .. key .. (isFocused and COLORS.RESET or ""),
             function()
                 if focusedLoadoutSlot == key then
                     focusedLoadoutSlot = nil

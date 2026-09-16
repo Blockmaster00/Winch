@@ -123,8 +123,10 @@ local KEYBINDS = {
 
 local sessionSettings = {
     maxInventorySlots = 4,
-    connectionRange = 50
+    connectionRange = 50,
+    saveInterval = 60,
 }
+sessionSettings = SAVING.loadSessionSettings() or sessionSettings
 
 local playerData = {}
 
@@ -205,7 +207,8 @@ UI.Setup({
     sessionSettings = sessionSettings,
     KEYBINDS = KEYBINDS,
     Winch = Winch,
-    ITEM_TYPES = ITEM_TYPES
+    ITEM_TYPES = ITEM_TYPES,
+    SAVING = SAVING
 })
 SAVING.Setup({
     ITEM_TYPES = ITEM_TYPES
@@ -244,6 +247,10 @@ function PlayerUpdate(player)
 end
 
 function update()
+    if tm.os.GetTime() - SAVING.lastPlayerDataSave >= sessionSettings.saveInterval then
+        SAVING.savePlayerData(playerData)
+    end
+
     local playerList = tm.players.CurrentPlayers()
     for key, player in ipairs(playerList) do
         PlayerUpdate(player)
@@ -347,7 +354,7 @@ function OnPlayerJoined(player)
         selectedConnectionPoint = nil,
         action = "none", -- "placingAnchor" | "connectingWinch"
         inventory = {
-            loadout ={
+            loadout = {
                 ITEM_TYPES.winch,
                 ITEM_TYPES.winch,
                 ITEM_TYPES.anchor,
@@ -404,12 +411,11 @@ function OnPlayerJoined(player)
                 speed = Winch.speed
             }
         },
-        lastPlayerDataSave = tm.os.GetTime()
     }
     local playerDataSave = SAVING.loadPlayerData(playerId)
     playerData[playerId].settings = playerDataSave and playerDataSave.settings or playerData[playerId].settings
-    playerData[playerId].inventory.loadout = playerDataSave and playerDataSave.loadout or playerData[playerId].inventory.loadout
-    SAVING.savePlayerData(playerData)
+    playerData[playerId].inventory.loadout = playerDataSave and playerDataSave.loadout or
+        playerData[playerId].inventory.loadout
     UI.UpdateUi(playerId, "main")
 
     tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnOpenCloseChat", "enter")
