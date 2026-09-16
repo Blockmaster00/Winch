@@ -1,11 +1,9 @@
 tm.os.SetModTargetDeltaTime(1 / 60)
 
-tm.physics.AddTexture("assets/icons/Winch_Icon.png", "Winch_Icon")
 
 local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
 local UI = tm.os.DoFile("ui")
-
 local SAVING = tm.os.DoFile("saving")
 
 local KEYBINDS = {
@@ -133,14 +131,12 @@ local playerData = {}
 local spawnedObjects = {}
 
 
-
 function UseAnchor(playerId, anchorItem)
     if anchorItem.isUsed then
         RemoveByValue(spawnedObjects, anchorItem.objectReference.object)
         anchorItem.objectReference:remove()
         anchorItem.objectReference = nil
         anchorItem.isUsed = false
-        -- give player visual feedback, that the anchor got retrieved
         return
     end
     if playerData[playerId].action == "none" then
@@ -158,7 +154,6 @@ function UseWinch(playerId, winchItem)
         winchItem.objectReference = nil
         winchItem.isUsed = false
         EnsureUseItemBox(playerId)
-        -- give player visual feedback, that the winch got detached
         return
     end
     if playerData[playerId].action == "none" then -- initiate connection process
