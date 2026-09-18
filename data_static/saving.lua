@@ -136,12 +136,15 @@ function SAVING.saveSessionSettings(sessionData)
 end
 
 function SAVING.loadSessionSettings()
-    local sessionDataText = tm.os.ReadAllText_Dynamic(SESSIONDATA_PATH)
-    if sessionDataText == nil then
+    local success, sessionDataText = pcall(tm.os.ReadAllText_Dynamic, SESSIONDATA_PATH)
+    tm.os.Log(success)
+    tm.os.Log(sessionDataText)
+    if not success or sessionDataText == "" then
+        tm.os.Log("Failed to read session data")
         return nil
     end
 
-    local sessionData = json.deserialize(sessionDataText)
+    local sessionData = json.parse(sessionDataText)
     return sessionData
 end
 
