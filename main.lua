@@ -159,7 +159,7 @@ function UseWinch(playerId, winchItem)
     if playerData[playerId].action == "none" then -- initiate connection process
         local playerStructure = tm.players.OccupiedStructure(playerId)
         if playerStructure == nil then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Enter a structure first!", "", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Enter a structure first!", "", 5, UI.WINCH_ICON)
             return
         end
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
@@ -206,7 +206,8 @@ UI.Setup({
     SAVING = SAVING
 })
 SAVING.Setup({
-    ITEM_TYPES = ITEM_TYPES
+    ITEM_TYPES = ITEM_TYPES,
+    UI = UI
 })
 
 function PlayerUpdate(player)
@@ -268,7 +269,7 @@ function SelectConnectionPoint(playerId, position)
         end
     end
     if closest.point == nil then
-        tm.playerUI.AddSubtleMessageForPlayer(playerId, "Try again.", "can't find closest point.", 5)
+        tm.playerUI.AddSubtleMessageForPlayer(playerId, "Try again.", "can't find closest point.", 5, UI.WINCH_ICON)
         return
     end
     if playerData[playerId].selectedConnectionPoint == nil then
@@ -382,7 +383,7 @@ function OnPlayerJoined(player)
             chatOpen = false
         },
         ui = {
-            page = "main", -- "settings"|"help"|"loadout"|"keybinds"|"configureWinch"
+            page = "main", -- "settings"|"help"|"loadout"|"keybinds"|"configureWinch|tutorial"
             focusedLoadoutSlot = nil,
             inventoryBoxId = nil,
             useItemBoxId = nil
@@ -622,7 +623,7 @@ function EnsureUseItemBox(playerId)
     local selectedSlot = inventory.slots[inventory.selectedSlot]
     if selectedSlot and inventory.loadout[inventory.selectedSlot] == ITEM_TYPES.winch and selectedSlot.isUsed and selectedSlot.objectReference then
         if not ui.useItemBoxId then
-            ui.useItemBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "", "", math.huge)
+            ui.useItemBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "", "", math.huge, UI.WINCH_ICON)
         end
         UI.UpdateItemBoxMessage(playerId, selectedSlot)
     else
@@ -663,11 +664,11 @@ function OnWinchSnap(callback)
 
     if callback.info then
         tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!",
-            callback.info, 5)
+            callback.info, 5, UI.WINCH_ICON)
     else
         local stretchedDistance = callback.stretchedDistance
         tm.playerUI.AddSubtleMessageForPlayer(playerId, "Winch " .. callback.inventorySlot .. " snapped!",
-            "stretched distance: " .. string.format("%.2f", stretchedDistance), 5)
+            "stretched distance: " .. string.format("%.2f", stretchedDistance), 5, UI.WINCH_ICON)
     end
 
     -- remove use-item box if visible for this player
@@ -783,7 +784,7 @@ function OnPlayerOpenCloseInventory(playerId)
     inventory.isOpen = not inventory.isOpen
     if inventory.isOpen then
         playerData[playerId].ui.inventoryBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Inventory", "",
-            math.huge)
+            math.huge, UI.WINCH_ICON)
     else
         tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].ui.inventoryBoxId)
         playerData[playerId].ui.inventoryBoxId = nil

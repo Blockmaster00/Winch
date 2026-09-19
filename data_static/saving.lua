@@ -8,6 +8,7 @@ SAVING.lastPlayerDataSave = tm.os.GetTime()
 
 function SAVING.Setup(config)
     ITEM_TYPES = config.ITEM_TYPES
+    UI = config.UI
 end
 
 -- responsible for saving Player specific data to a JSON file, and loading it back into the game when the player joins
@@ -109,7 +110,7 @@ function SAVING.savePlayerData(playerDataTable)
 
     tm.os.WriteAllText_Dynamic(PLAYERDATA_PATH, json.serialize(playerSaves))
     SAVING.lastPlayerDataSave = tm.os.GetTime()
-    tm.playerUI.AddSubtleMessageForAllPlayers("Player data saved", "Player data saved", 1)
+    tm.playerUI.AddSubtleMessageForAllPlayers("", "Player data saved", 1, UI.SAVE_ICON)
     tm.os.Log("Player data saved")
 end
 
@@ -137,8 +138,6 @@ end
 
 function SAVING.loadSessionSettings()
     local success, sessionDataText = pcall(tm.os.ReadAllText_Dynamic, SESSIONDATA_PATH)
-    tm.os.Log(success)
-    tm.os.Log(sessionDataText)
     if not success or sessionDataText == "" then
         tm.os.Log("Failed to read session data")
         return nil

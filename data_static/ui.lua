@@ -17,9 +17,8 @@ local COLORS = {
 
 local btnReturn = "<b><color=#69d9d8>↩️ Return </color></b>"
 
-local function IsValidKeybind(value)
-    return value ~= nil and KEYBINDS[value]
-end
+UI.WINCH_ICON = "winchIcon"
+tm.physics.AddTexture("assets/icons/Winch_Icon.png", UI.WINCH_ICON)
 
 function UI.Setup(config)
     playerData = config.playerData
@@ -30,6 +29,11 @@ function UI.Setup(config)
     SAVING = config.SAVING
 end
 
+local function IsValidKeybind(value)
+    return value ~= nil and KEYBINDS[value]
+end
+
+
 local function DrawMainMenu(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Main Menu -~")
     tm.playerUI.AddUIButton(playerId, "btnSettings", COLORS.BLUE .. "Settings" .. COLORS.RESET,
@@ -37,7 +41,12 @@ local function DrawMainMenu(playerId, data)
     tm.playerUI.AddUIButton(playerId, "btnLoadout", COLORS.GREEN .. "Loadout" .. COLORS.RESET,
         function() UI.UpdateUi(playerId, "loadout") end)
 
-    tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
+    tm.playerUI.AddUILabel(playerId, "lbldividerSmall1", "-+-")
+
+    tm.playerUI.AddUIButton(playerId, "btnTutorial", COLORS.PURPLE .. "Tutorial" .. COLORS.RESET,
+        function() UI.UpdateUi(playerId, "tutorial") end)
+
+    tm.playerUI.AddUILabel(playerId, "lbldividerSmall2", "-+-")
 
     tm.playerUI.AddUILabel(playerId, "lblCredit1", "Made with ❤️")
     tm.playerUI.AddUILabel(playerId, "lblCredit2", "<color=#BEAED5>by Blockhampter</color>")
@@ -55,7 +64,7 @@ local function DrawSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblWinchStiffness", "Stiffness:")
     tm.playerUI.AddUIText(playerId, "txtWinchStiffness", settings.defaultWinch.stiffness, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) <= 0 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5, UI.WINCH_ICON)
             return
         end
         settings.defaultWinch.stiffness = tonumber(UICallbackData.value)
@@ -63,7 +72,7 @@ local function DrawSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblWinchMaxStretch", "Max Stretch:")
     tm.playerUI.AddUIText(playerId, "txtWinchMaxStretch", settings.defaultWinch.maxStretch, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 100 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 100", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 100", 5, UI.WINCH_ICON)
             return
         end
         settings.defaultWinch.maxStretch = tonumber(UICallbackData.value)
@@ -71,7 +80,7 @@ local function DrawSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblWinchSpeed", "Speed:")
     tm.playerUI.AddUIText(playerId, "txtWinchSpeed", settings.defaultWinch.speed, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 0 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number >= 0", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number >= 0", 5, UI.WINCH_ICON)
             return
         end
         settings.defaultWinch.speed = tonumber(UICallbackData.value)
@@ -107,7 +116,7 @@ local function DrawSettings(playerId, data)
                 local value = tonumber(UICallbackData.value)
                 if value == nil or value <= 0 or value > 9 then
                     tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value",
-                        "Value must be a number between 1 and 9", 5)
+                        "Value must be a number between 1 and 9", 5, UI.WINCH_ICON)
                     return
                 end
                 sessionSettings.maxInventorySlots = value
@@ -122,7 +131,7 @@ local function DrawSettings(playerId, data)
         tm.playerUI.AddUIText(playerId, "txtConnectionRange", sessionSettings.connectionRange, function(UICallbackData)
             local value = tonumber(UICallbackData.value)
             if value == nil or value <= 0 then
-                tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+                tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5, UI.WINCH_ICON)
                 return
             end
             sessionSettings.connectionRange = value
@@ -137,7 +146,7 @@ local function DrawSettings(playerId, data)
         tm.playerUI.AddUIText(playerId, "txtSaveInterval", sessionSettings.saveInterval, function(UICallbackData)
             local value = tonumber(UICallbackData.value)
             if value == nil or value <= 0 then
-                tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+                tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5, UI.WINCH_ICON)
                 return
             end
             sessionSettings.saveInterval = value
@@ -157,7 +166,7 @@ local function DrawKeybindSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblWinchExtend", "Extend:")
     tm.playerUI.AddUIText(playerId, "txtWinchExtend", keybinds.winch.extend, function(UICallbackData)
         if not IsValidKeybind(UICallbackData.value) then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5, UI.WINCH_ICON)
             return
         end
         keybinds.winch.extend = UICallbackData.value
@@ -165,7 +174,7 @@ local function DrawKeybindSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblWinchPull", "Pull:")
     tm.playerUI.AddUIText(playerId, "txtWinchPull", keybinds.winch.pull, function(UICallbackData)
         if not IsValidKeybind(UICallbackData.value) then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5, UI.WINCH_ICON)
             return
         end
         keybinds.winch.pull = UICallbackData.value
@@ -174,7 +183,7 @@ local function DrawKeybindSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblInventoryLeft", "Left:")
     tm.playerUI.AddUIText(playerId, "txtInventoryLeft", keybinds.inventory.left, function(UICallbackData)
         if not IsValidKeybind(UICallbackData.value) then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5, UI.WINCH_ICON)
             return
         end
         keybinds.inventory.left = UICallbackData.value
@@ -182,7 +191,7 @@ local function DrawKeybindSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblInventoryRight", "Right:")
     tm.playerUI.AddUIText(playerId, "txtInventoryRight", keybinds.inventory.right, function(UICallbackData)
         if not IsValidKeybind(UICallbackData.value) then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5, UI.WINCH_ICON)
             return
         end
         keybinds.inventory.right = UICallbackData.value
@@ -190,7 +199,7 @@ local function DrawKeybindSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblInventoryUseItem", "Use Item:")
     tm.playerUI.AddUIText(playerId, "txtInventoryUseItem", keybinds.inventory.useItem, function(UICallbackData)
         if not IsValidKeybind(UICallbackData.value) then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5, UI.WINCH_ICON)
             return
         end
         keybinds.inventory.useItem = UICallbackData.value
@@ -198,7 +207,7 @@ local function DrawKeybindSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblInventoryOpenClose", "Open/Close:")
     tm.playerUI.AddUIText(playerId, "txtInventoryOpenClose", keybinds.inventory.openClose, function(UICallbackData)
         if not IsValidKeybind(UICallbackData.value) then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a valid keybind", 5, UI.WINCH_ICON)
             return
         end
         keybinds.inventory.openClose = UICallbackData.value
@@ -269,7 +278,7 @@ local function DrawLoadout(playerId, data)
 end
 
 -- Settings page for each Winch in the players Loadout. This page gets opened when the player clicks "Configure" on a Winch in the Loadout page.
-function DrawConfigureWinch(playerId, data)
+local function DrawConfigureWinch(playerId, data)
     local inventorySlot = data.inventorySlot
     if inventorySlot == nil then
         tm.os.Log("DrawConfigureWinch: inventorySlot is nil")
@@ -283,7 +292,7 @@ function DrawConfigureWinch(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblWinchStiffness", "Stiffness:")
     tm.playerUI.AddUIText(playerId, "txtWinchStiffness", winch.stiffness, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) <= 0 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 0", 5, UI.WINCH_ICON)
             return
         end
         winch.stiffness = tonumber(UICallbackData.value)
@@ -291,7 +300,7 @@ function DrawConfigureWinch(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblWinchMaxStretch", "Max Stretch:")
     tm.playerUI.AddUIText(playerId, "txtWinchMaxStretch", winch.maxStretch, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 100 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 100", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number > 100", 5, UI.WINCH_ICON)
             return
         end
         winch.maxStretch = tonumber(UICallbackData.value)
@@ -299,11 +308,33 @@ function DrawConfigureWinch(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblWinchSpeed", "Speed:")
     tm.playerUI.AddUIText(playerId, "txtWinchSpeed", winch.speed, function(UICallbackData)
         if tonumber(UICallbackData.value) == nil or tonumber(UICallbackData.value) < 0 then
-            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number >= 0", 5)
+            tm.playerUI.AddSubtleMessageForPlayer(playerId, "Invalid Value", "Value must be a number >= 0", 5, UI.WINCH_ICON)
             return
         end
         winch.speed = tonumber(UICallbackData.value)
     end)
+end
+
+local function DrawTutorial(playerId, data)
+    tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Tutorial -~")
+    tm.playerUI.AddUIButton(playerId, "btnCancel", COLORS.GREEN.."Cancel"..COLORS.RESET, function() UI.UpdateUi(playerId, "main") end)
+    if not playerData[playerId].tutorialNavigationMessage then
+        playerData[playerId].tutorialNavigationMessage = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Tutorial Navigation", "Press '"..playerData[playerId].settings.keybinds.inventory.useItem.."' to continue.", 100, UI.WINCH_ICON)
+    end
+    local  tutorialStep = data.tutorialStep or 1
+    -- switch case
+    if tutorialStep == 1 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Tutorial", "Welcome to the Tutorial!", 2)
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "", "test!", 4)
+
+    elseif tutorialStep == 2 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Tutorial", "This is step 2!", 2)
+    else
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Tutorial", "Tutorial complete!", 2)
+        tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].tutorialNavigationMessage)
+        playerData[playerId].tutorialNavigationMessage = nil
+        UI.UpdateUi(playerId, "main")
+    end
 end
 
 function UI.UpdateUi(playerId, uiPage, data)
@@ -314,6 +345,7 @@ function UI.UpdateUi(playerId, uiPage, data)
         ["keybinds"] = DrawKeybindSettings,
         ["loadout"] = DrawLoadout,
         ["configureWinch"] = DrawConfigureWinch,
+        ["tutorial"] = DrawTutorial,
     }
     if uiPages[uiPage] then
         playerData[playerId].ui.page = uiPage
