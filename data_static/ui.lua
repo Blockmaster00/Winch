@@ -17,6 +17,26 @@ local COLORS = {
 
 local btnReturn = "<b><color=#69d9d8>↩️ Return </color></b>"
 
+local TUTORIAL_STEP_NAMES = {
+    [1] = "Welcome",
+    [2] = "Add conn. block",
+    [3] = "Open inventory",
+    [4] = "Select anchor",
+    [5] = "Enter place mode",
+    [6] = "Place anchor",
+    [7] = "Select winch",
+    [8] = "Connect mode",
+    [9] = "Connect to build",
+    [10] = "To anchor",
+    [11] = "Use the winch",
+    [12] = "Complete"
+}
+
+UI.BLOCK_ICONS = {
+    ["PFB_TubeThing [Server]"] = "Rounded_Metal_Tube"
+}
+tm.physics.AddTexture("assets/icons/Rounded_Metal_Tube.png", UI.BLOCK_ICONS["PFB_TubeThing [Server]"])
+
 UI.WINCH_ICON = "winchIcon"
 tm.physics.AddTexture("assets/icons/Winch_Icon.png", UI.WINCH_ICON)
 
@@ -44,7 +64,7 @@ local function DrawMainMenu(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall1", "-+-")
 
     tm.playerUI.AddUIButton(playerId, "btnTutorial", COLORS.PURPLE .. "Tutorial" .. COLORS.RESET,
-        function() UI.UpdateUi(playerId, "tutorial") end)
+        function() UI.StartTutorial(playerId) end)
 
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall2", "-+-")
 
@@ -315,26 +335,107 @@ local function DrawConfigureWinch(playerId, data)
     end)
 end
 
+local function ShowTutorialStep(playerId)
+    local tutorial = playerData[playerId].tutorial
+    local settings = playerData[playerId].settings
+    local inventoryKeybinds = settings.keybinds.inventory
+    local winchKeybinds = settings.keybinds.winch
+
+
+    tm.playerUI.SetUIValue(playerId, "lblTutorialStep",
+        "Tutorial " .. tutorial.step .. "/12: " .. TUTORIAL_STEP_NAMES[tutorial.step])
+    if tutorial.step == 1 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Welcome to the Tutorial",
+            "In this brief tutorial you will learn how to connect winches and use them.", 5)
+        tutorial.advanceAt = tm.os.GetTime() + 5
+    elseif tutorial.step == 2 then
+        local structure = tm.players.OccupiedStructure(playerId)
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "How to connect to a build?",
+            "Your build needs at least one connection block.", 5)
+        for _, item in ipairs(Winch.CONNECTION_POINT.ATTACHABLE_BLOCKS) do
+            tutorial.validConnectionBlockInfos[#tutorial.validConnectionBlockInfos + 1] =
+                tm.playerUI.AddSubtleMessageForPlayer(playerId, "Valid Connection Block", item,
+                    100, UI.BLOCK_ICONS[item])
+        end
+        if structure == nil or #GetAllConnectionPointsOnStructure(structure) == 0 then
+            tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "", "Please place one on your build.", 8)
+        else
+            tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "", "You already have one on your build. :)", 2)
+        end
+    elseif tutorial.step == 3 then
+        for _, subtleMessage in ipairs(tutorial.validConnectionBlockInfos) do
+            tm.playerUI.RemoveSubtleMessageForPlayer(playerId, subtleMessage)
+            subtleMessage = nil
+        end
+        tutorial.validConnectionBlockInfos = {}
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Open the Inventory",
+            "Open the inventory with '" .. inventoryKeybinds.openClose .. "'.", 8)
+    elseif tutorial.step == 4 then
+        local navigationText
+        if inventoryKeybinds.left == "left" and inventoryKeybinds.right == "right" then
+            navigationText = "the arrow keys"
+        else
+            navigationText = "'" .. inventoryKeybinds.left .. "' and '" .. inventoryKeybinds.right .. "'"
+        end
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Select an Anchor",
+            "Use " .. navigationText .. " to select an Anchor.", 8)
+    elseif tutorial.step == 5 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Place the Anchor",
+            "Press '" .. inventoryKeybinds.useItem .. "' to enter place mode.", 5)
+    elseif tutorial.step == 6 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Place the Anchor",
+            "Press F4 to release your cursor, then click a valid surface.", 5)
+    elseif tutorial.step == 7 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Select a Winch",
+            "Use the inventory navigation keys to select a Winch.", 5)
+    elseif tutorial.step == 8 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Connect the Winch",
+            "Press '" .. inventoryKeybinds.useItem .. "' to enter connect mode.", 8)
+    elseif tutorial.step == 9 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Connect to Your Build",
+            "Press F4, then click a connection point on your build.", 8)
+    elseif tutorial.step == 10 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Connect to the Anchor",
+            "Click the anchor you placed earlier.", 8)
+    elseif tutorial.step == 11 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Using the Winch",
+            "Extend and retract the winch with '" .. winchKeybinds.extend .. "' and '" ..
+            winchKeybinds.pull .. "'.", 8)
+    elseif tutorial.step == 12 then
+        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Tutorial Complete!",
+            "Check the settings and loadout pages to customize your winch.", 8)
+        tutorial.completeAt = tm.os.GetTime() + 8
+    end
+end
+
+function UI.StartTutorial(playerId)
+    local tutorial = playerData[playerId].tutorial
+    tutorial.active = true
+    tutorial.step = 1
+    tutorial.advanceAt = nil
+    tutorial.completeAt = nil
+    UI.UpdateUi(playerId, "tutorial")
+end
+
+function UI.AdvanceTutorial(playerId, expectedStep, nextStep)
+    local tutorial = playerData[playerId].tutorial
+    if not tutorial.active or tutorial.step ~= expectedStep then
+        return false
+    end
+
+    tutorial.step = nextStep
+    ShowTutorialStep(playerId)
+    return true
+end
+
 local function DrawTutorial(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Tutorial -~")
-    tm.playerUI.AddUIButton(playerId, "btnCancel", COLORS.GREEN.."Cancel"..COLORS.RESET, function() UI.UpdateUi(playerId, "main") end)
-    if not playerData[playerId].tutorialNavigationMessage then
-        playerData[playerId].tutorialNavigationMessage = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Tutorial Navigation", "Press '"..playerData[playerId].settings.keybinds.inventory.useItem.."' to continue.", 100, UI.WINCH_ICON)
-    end
-    local  tutorialStep = data.tutorialStep or 1
-    -- switch case
-    if tutorialStep == 1 then
-        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Tutorial", "Welcome to the Tutorial!", 2)
-        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "", "test!", 4)
-
-    elseif tutorialStep == 2 then
-        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Tutorial", "This is step 2!", 2)
-    else
-        tm.playerUI.ShowIntrusiveMessageForPlayer(playerId, "Tutorial", "Tutorial complete!", 2)
-        tm.playerUI.RemoveSubtleMessageForPlayer(playerId, playerData[playerId].tutorialNavigationMessage)
-        playerData[playerId].tutorialNavigationMessage = nil
+    tm.playerUI.AddUIButton(playerId, "btnCancel", COLORS.GREEN .. "Cancel" .. COLORS.RESET, function()
+        playerData[playerId].tutorial.active = false
         UI.UpdateUi(playerId, "main")
-    end
+    end)
+    tm.playerUI.AddUILabel(playerId, "lblTutorialStep", "Tutorial " .. 1 .. "/12: ")
+    ShowTutorialStep(playerId)
 end
 
 function UI.UpdateUi(playerId, uiPage, data)

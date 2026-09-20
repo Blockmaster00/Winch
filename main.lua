@@ -142,6 +142,7 @@ function UseAnchor(playerId, anchorItem)
     if playerData[playerId].action == "none" then
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "placingAnchor"
+        UI.AdvanceTutorial(playerId, 5, 6)
     elseif playerData[playerId].action == "placingAnchor" then
         tm.playerUI.DeregisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "none"
@@ -164,6 +165,7 @@ function UseWinch(playerId, winchItem)
         end
         tm.playerUI.RegisterMouseDownPositionCallback(playerId, OnPlayerClick)
         playerData[playerId].action = "connectingWinch"
+        UI.AdvanceTutorial(playerId, 8, 9)
         playerData[playerId].connectionPoints = {}
         local blockList = GetAllConnectionPointsOnStructure(playerStructure)
         for key, block in ipairs(blockList) do
@@ -214,6 +216,21 @@ function PlayerUpdate(player)
     local playerId = player.playerId
     local inventory = playerData[playerId].inventory
     local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
+    local tutorial = playerData[playerId].tutorial
+
+    if tutorial.active and tutorial.step == 1 and tutorial.advanceAt
+        and tm.os.GetTime() >= tutorial.advanceAt then
+        UI.AdvanceTutorial(playerId, 1, 2)
+    elseif tutorial.active and tutorial.step == 2 then
+        local structure = tm.players.OccupiedStructure(playerId)
+        if structure and #GetAllConnectionPointsOnStructure(structure) > 0 then
+            UI.AdvanceTutorial(playerId, 2, 3)
+        end
+    elseif tutorial.active and tutorial.step == 12 and tutorial.completeAt
+        and tm.os.GetTime() >= tutorial.completeAt then
+        tutorial.active = false
+        UI.UpdateUi(playerId, "main")
+    end
 
     for key, item in ipairs(inventory.slots) do
         if inventory.loadout[key] == ITEM_TYPES.winch and item.isUsed then
@@ -274,6 +291,7 @@ function SelectConnectionPoint(playerId, position)
     end
     if playerData[playerId].selectedConnectionPoint == nil then
         playerData[playerId].selectedConnectionPoint = closest.point
+        UI.AdvanceTutorial(playerId, 9, 10)
 
         for block, visualizer in pairs(playerData[playerId].connectionPoints) do
             visualizer.Despawn()
@@ -307,6 +325,7 @@ function SelectConnectionPoint(playerId, position)
             { inventorySlot = playerData[playerId].inventory.selectedSlot })
         selectedInventorySlot.objectReference:update()
         selectedInventorySlot.isUsed = true
+        UI.AdvanceTutorial(playerId, 10, 11)
         -- Highlight the newly created winch
         if selectedInventorySlot.objectReference.ropeObject then
             selectedInventorySlot.objectReference:Highlight()
@@ -338,6 +357,8 @@ function PlaceAnchor(playerId, hitPosition)
 
     playerData[playerId].action = "none"
     selectedInventorySlot.isUsed = true
+
+    UI.AdvanceTutorial(playerId, 6, 7)
 
     UI.UpdateInventoryMessage(playerId)
 end
@@ -387,6 +408,13 @@ function OnPlayerJoined(player)
             focusedLoadoutSlot = nil,
             inventoryBoxId = nil,
             useItemBoxId = nil
+        },
+        tutorial = {
+            active = false,
+            step = 1,
+            advanceAt = nil,
+            completeAt = nil,
+            validConnectionBlockInfos = {}
         },
         settings = {
             keybinds = {
@@ -504,7 +532,7 @@ function GetAllConnectionPointsOnStructure(structure)
     local blockList = structure.GetBlocks()
     local connectionPoints = {}
     for key, block in ipairs(blockList) do
-        if TableContains(Winch.CONNECTION_POINT.ATTACHABLE_BlOCKS, block.GetName()) then
+        if TableContains(Winch.CONNECTION_POINT.ATTACHABLE_BLOCKS, block.GetName()) then
             table.insert(connectionPoints, block)
         end
     end
@@ -705,6 +733,7 @@ function OnPlayerPullWinchStart(playerId)
     local selectedItem = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
     if playerData[playerId].inventory.loadout[playerData[playerId].inventory.selectedSlot] == ITEM_TYPES.winch and selectedItem.isUsed then
         playerData[playerId].input.isPulling = true
+        UI.AdvanceTutorial(playerId, 11, 12)
     end
 end
 
@@ -714,6 +743,7 @@ function OnPlayerExtendWinchStart(playerId)
     local selectedItem = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
     if playerData[playerId].inventory.loadout[playerData[playerId].inventory.selectedSlot] == ITEM_TYPES.winch and selectedItem.isUsed then
         playerData[playerId].input.isExtending = true
+        UI.AdvanceTutorial(playerId, 11, 12)
     end
 end
 
@@ -748,6 +778,11 @@ function OnPlayerInventoryLeft(playerId)
     end
     playerData[playerId].action = "none"
     UpdateSelectionHighlight(playerId, oldSlotIndex, inventory.selectedSlot)
+    if inventory.loadout[inventory.selectedSlot] == ITEM_TYPES.anchor then
+        UI.AdvanceTutorial(playerId, 4, 5)
+    elseif inventory.loadout[inventory.selectedSlot] == ITEM_TYPES.winch then
+        UI.AdvanceTutorial(playerId, 7, 8)
+    end
     UI.UpdateInventoryMessage(playerId)
     EnsureUseItemBox(playerId)
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
@@ -769,6 +804,11 @@ function OnPlayerInventoryRight(playerId)
     end
     playerData[playerId].action = "none"
     UpdateSelectionHighlight(playerId, oldSlotIndex, inventory.selectedSlot)
+    if inventory.loadout[inventory.selectedSlot] == ITEM_TYPES.anchor then
+        UI.AdvanceTutorial(playerId, 4, 5)
+    elseif inventory.loadout[inventory.selectedSlot] == ITEM_TYPES.winch then
+        UI.AdvanceTutorial(playerId, 7, 8)
+    end
     UI.UpdateInventoryMessage(playerId)
     EnsureUseItemBox(playerId)
     for block, visualizer in pairs(playerData[playerId].connectionPoints) do
@@ -782,6 +822,9 @@ function OnPlayerOpenCloseInventory(playerId)
     if playerData[playerId].input.chatOpen then return end
     local inventory = playerData[playerId].inventory
     inventory.isOpen = not inventory.isOpen
+    if inventory.isOpen then
+        UI.AdvanceTutorial(playerId, 3, 4)
+    end
     if inventory.isOpen then
         playerData[playerId].ui.inventoryBoxId = tm.playerUI.AddSubtleMessageForPlayer(playerId, "Inventory", "",
             math.huge, UI.WINCH_ICON)

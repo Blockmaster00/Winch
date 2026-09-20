@@ -11,11 +11,6 @@ function SAVING.Setup(config)
     UI = config.UI
 end
 
--- responsible for saving Player specific data to a JSON file, and loading it back into the game when the player joins
--- relevant playerData:
--- inventoryloadout
--- settings
-
 
 local function loadPlayerSaves()
     local success, data = pcall(function()

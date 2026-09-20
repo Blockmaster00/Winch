@@ -9,7 +9,7 @@
 ---@field targetType string
 local Winch = {}
 Winch.CONNECTION_POINT = {
-    ATTACHABLE_BlOCKS = { "PFB_TubeThing [Server]" },
+    ATTACHABLE_BLOCKS = { "PFB_TubeThing [Server]" },
     PREFAB = "PFB_MovePuzzleBall",
     SCALE = tm.vector3.Create(0.3, 0.3, 0.3)
 }
