@@ -444,7 +444,9 @@ function OnPlayerJoined(player)
         playerData[playerId].inventory.loadout
     UI.UpdateUi(playerId, "main")
 
-    tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnOpenCloseChat", "enter")
+    if not tm.os.IsSingleplayer then
+        tm.input.RegisterFunctionToKeyDownCallback(playerId, "OnOpenCloseChat", "enter")
+    end
 end
 
 tm.players.OnPlayerJoined.add(OnPlayerJoined)

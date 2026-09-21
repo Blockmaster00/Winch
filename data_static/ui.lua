@@ -113,16 +113,16 @@ local function DrawSettings(playerId, data)
         }
         UI.UpdateUi(playerId, "settings")
     end)
+    if not tm.os.IsSingleplayer then
+        tm.playerUI.AddUILabel(playerId, "lblTroubleshooting", "- Troubleshooting -")
 
-    tm.playerUI.AddUILabel(playerId, "lblTroubleshooting", "- Troubleshooting -")
-
-    local input = playerData[playerId].input
-    tm.playerUI.AddUILabel(playerId, "lblChatOpenState", "Chat is " .. (input.chatOpen and "open" or "closed") .. ".")
-    tm.playerUI.AddUIButton(playerId, "btnResetChatOpenState", "reset internal chat-state", function()
-        input.chatOpen = false
-        UI.UpdateUi(playerId, "settings")
-    end)
-
+        local input = playerData[playerId].input
+        tm.playerUI.AddUILabel(playerId, "lblChatOpenState", "Chat is " .. (input.chatOpen and "open" or "closed") .. ".")
+        tm.playerUI.AddUIButton(playerId, "btnResetChatOpenState", "reset internal chat-state", function()
+            input.chatOpen = false
+            UI.UpdateUi(playerId, "settings")
+        end)
+    end
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
 
     tm.playerUI.AddUILabel(playerId, "lblSessionSettingsHeading", "- Session Settings -")
