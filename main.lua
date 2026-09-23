@@ -273,6 +273,7 @@ function update()
 end
 
 function SelectConnectionPoint(playerId, position)
+    tm.os.Log("Player " .. playerId .. " selecting connection point at position: " .. tostring(position))
     local closest = {
         point = nil,
         distance = math.huge
@@ -345,6 +346,7 @@ function SelectConnectionPoint(playerId, position)
 end
 
 function PlaceAnchor(playerId, hitPosition)
+    tm.os.Log("Player " .. playerId .. " placing anchor at position: " .. tostring(hitPosition))
     local playerPos = tm.players.GetPlayerTransform(playerId).GetPositionWorld()
     local hitDirection = Normalize(hitPosition - playerPos)
     -- start raycast just infront of hit position to get hit normal
@@ -719,15 +721,17 @@ end
 function OnPlayerClick(callback)
     local playerId = callback.playerId
     local position = tm.vector3.Create(callback.value)
+    tm.os.Log("Player " .. playerId .. " clicked at position: " .. tostring(position))
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
-
+    tm.os.Log("Player " .. playerId .. " action: " .. playerData[playerId].action)
     local callAction = {
         ["placingAnchor"] = PlaceAnchor,
         ["connectingWinch"] = SelectConnectionPoint
     }
     if callAction[playerData[playerId].action] then
         callAction[playerData[playerId].action](playerId, position)
+        tm.os.Log("Player " .. playerId .. " action executed: " .. playerData[playerId].action)
     end
 end
 
