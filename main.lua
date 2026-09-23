@@ -1,6 +1,6 @@
 tm.os.SetModTargetDeltaTime(1 / 60)
 
-local VERSION = "1.0"
+local VERSION = "1.01"
 tm.os.Log("Winch mod version " .. VERSION .. " loaded.")
 
 local Winch = tm.os.DoFile("winch")
@@ -620,6 +620,15 @@ function RemoveByValue(t, value)
     return false
 end
 
+function RegionFixStrToVec3(value) -- "value" must be a string of 3 numbers separated by commas eg "(4.5, 6, 10.8)"
+    local newValue = string.gsub(value, "%(", "[")
+    newValue = string.gsub(newValue, "%)", "]")
+    local vTable = {}
+    vTable = json.parse(newValue) -- parse string into an array table
+    local vec3value = tm.vector3.Create(vTable[1], vTable[2], vTable[3]) -- create a new vector3 with individual axis data to avoid decimal separators being stripped out
+    return vec3value
+end
+
 -- Update highlighting when selected item changes
 function UpdateSelectionHighlight(playerId, oldSlotIndex, newSlotIndex)
     local inventory = playerData[playerId].inventory
@@ -720,18 +729,16 @@ end
 
 function OnPlayerClick(callback)
     local playerId = callback.playerId
-    local position = tm.vector3.Create(callback.value)
-    tm.os.Log("Player " .. playerId .. " clicked at position: " .. tostring(position))
+    local position = RegionFixStrToVec3(callback.value)
+
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
-    tm.os.Log("Player " .. playerId .. " action: " .. playerData[playerId].action)
     local callAction = {
         ["placingAnchor"] = PlaceAnchor,
         ["connectingWinch"] = SelectConnectionPoint
     }
     if callAction[playerData[playerId].action] then
         callAction[playerData[playerId].action](playerId, position)
-        tm.os.Log("Player " .. playerId .. " action executed: " .. playerData[playerId].action)
     end
 end
 
