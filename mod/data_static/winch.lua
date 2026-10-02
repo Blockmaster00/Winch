@@ -116,12 +116,14 @@ function Winch:_applyForces(originPos, targetPos, stretchedDistance)
     self.origin.AddForce(originForce.x, originForce.y, originForce.z)
 end
 
-function Winch:pull()
-    self.length = self.length - (self.speed * tm.os.GetModDeltaTime())
+function Winch:pull(speed)
+    local speed = speed or self.speed
+    self.length = self.length - (speed * tm.os.GetModDeltaTime())
 end
 
-function Winch:extend()
-    self.length = self.length + (self.speed * tm.os.GetModDeltaTime())
+function Winch:extend(speed)
+    local speed = speed or self.speed
+    self.length = self.length + (speed * tm.os.GetModDeltaTime())
 end
 
 ---@param stretchedDistance number

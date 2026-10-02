@@ -5,6 +5,7 @@ local sessionSettings
 local KEYBINDS
 local Winch
 local ITEM_TYPES
+local IsSlotInGroup
 local SAVING
 
 local COLORS = {
@@ -46,6 +47,7 @@ function UI.Setup(config)
     KEYBINDS = config.KEYBINDS
     Winch = config.Winch
     ITEM_TYPES = config.ITEM_TYPES
+    GetGroupBySlot = config.GetGroupBySlot
     SAVING = config.SAVING
 end
 
@@ -236,25 +238,40 @@ local function DrawKeybindSettings(playerId, data)
     tm.playerUI.AddUILabel(playerId, "lbldividerSmall", "-+-")
 end
 
+local function RemoveSlotFromGroup(inventory, slot)
+    local groupIndex = GetGroupBySlot(inventory, slot)
+    local group = groupIndex and inventory.groups[groupIndex]
+    if not group then
+        return
+    end
+
+    for index, groupedSlot in ipairs(group.slots) do
+        if groupedSlot == slot then
+            table.remove(group.slots, index)
+            return
+        end
+    end
+end
+
 local function DrawLoadout(playerId, data)
     local inventory = playerData[playerId].inventory
     local focusedLoadoutSlot = data.focusedLoadoutSlot or nil
     local switchingItemType = data.switchingItemType or false
+    local addingToGroup = data.addingToGroup or false
     tm.playerUI.AddUIButton(playerId, "btnReturn", btnReturn, function() UI.UpdateUi(playerId, "main") end)
     tm.playerUI.AddUILabel(playerId, "lblHeading", "~- Loadout -~")
 
     for key, slot in pairs(inventory.slots) do
         local isFocused = focusedLoadoutSlot == key
         tm.playerUI.AddUIButton(playerId, "btnInventorySlot" .. key,
-            (isFocused and COLORS.PURPLE or "") ..
-            inventory.loadout[key].name .. " " .. key .. (isFocused and COLORS.RESET or ""),
+            (isFocused and COLORS.PURPLE or "") .. " " .."[".. key .."] " ..
+            inventory.loadout[key].name .. (GetGroupBySlot(inventory, key) and " | Group: " .. GetGroupBySlot(inventory, key) or ""),
             function()
                 if focusedLoadoutSlot == key then
-                    focusedLoadoutSlot = nil
+                    UI.UpdateUi(playerId, "loadout")
                 else
-                    focusedLoadoutSlot = key
+                    UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key })
                 end
-                UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key })
             end)
         if isFocused then
             if inventory.loadout[key] == ITEM_TYPES.winch and slot.objectReference then
@@ -278,10 +295,49 @@ local function DrawLoadout(playerId, data)
                             inventory.loadout[key] = itemType
                             inventory.slots[key].isUsed = false
                             inventory.slots[key].objectReference = nil
+                            RemoveSlotFromGroup(inventory, key)
                             UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key, switchingItemType = false })
                         end)
                 end
             end
+
+            -- if slot is not already in a group and of type winchItem 
+            if inventory.loadout[key] == ITEM_TYPES.winch then
+                if not GetGroupBySlot(inventory, key) then
+                    tm.playerUI.AddUIButton(playerId, "btnAddToGroup", COLORS.BLUE .. "Add to Group" .. COLORS.RESET, function()
+                        UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key, addingToGroup = true })
+                    end)
+                else
+                    tm.playerUI.AddUIButton(playerId, "btnRemoveFromGroup", COLORS.BLUE .. "Remove from Group" .. COLORS.RESET, function()
+                        RemoveSlotFromGroup(inventory, key)
+                        UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key })
+                    end)
+                end
+            end
+            if addingToGroup then
+                -- 
+                for groupKey, group in pairs(playerData[playerId].inventory.groups) do
+                    tm.playerUI.AddUIButton(playerId, "btnAddToGroup" .. groupKey,
+                        COLORS.BLUE .. "Add to Group: " .. groupKey .. COLORS.RESET,
+                        function()
+                            -- Add the item to the group
+                            table.insert(group.slots, key)
+                            UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key })
+                        end)
+                end
+                tm.playerUI.AddUIButton(playerId, "btnCreateNewGroup", COLORS.GREEN .. "Create New Group" .. COLORS.RESET, function()
+                    -- Create a new group and add the item to it
+                    local newGroupName = "Group " .. (#playerData[playerId].inventory.groups + 1)
+                    table.insert(playerData[playerId].inventory.groups, { name = newGroupName, slots = { key } })
+                    UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key })
+                end)
+                tm.playerUI.AddUIButton(playerId, "btnAddToGroup", COLORS.RED .. "Cancel" .. COLORS.RESET, function()
+                    addingToGroup = false
+                    UI.UpdateUi(playerId, "loadout", { focusedLoadoutSlot = key })
+                end)
+            end
+
+
             tm.playerUI.AddUIButton(playerId, "btnRemoveLoadoutSlot", COLORS.RED .. "Remove" .. COLORS.RESET, function()
                 table.remove(inventory.slots, key)
                 UI.UpdateUi(playerId, "loadout")
@@ -302,6 +358,7 @@ local function DrawConfigureWinch(playerId, data)
     local inventorySlot = data.inventorySlot
     if inventorySlot == nil then
         tm.os.Log("DrawConfigureWinch: inventorySlot is nil")
+        UI.UpdateUi(playerId, "loadout")
         return
     end
     local inventory = playerData[playerId].inventory
@@ -316,6 +373,7 @@ local function DrawConfigureWinch(playerId, data)
             return
         end
         winch.stiffness = tonumber(UICallbackData.value)
+        inventory.loadout[inventorySlot].config.stiffness = tonumber(UICallbackData.value)
     end)
     tm.playerUI.AddUILabel(playerId, "lblWinchMaxStretch", "Max Stretch:")
     tm.playerUI.AddUIText(playerId, "txtWinchMaxStretch", winch.maxStretch, function(UICallbackData)
@@ -324,6 +382,7 @@ local function DrawConfigureWinch(playerId, data)
             return
         end
         winch.maxStretch = tonumber(UICallbackData.value)
+        inventory.loadout[inventorySlot].config.maxStretch = tonumber(UICallbackData.value)
     end)
     tm.playerUI.AddUILabel(playerId, "lblWinchSpeed", "Speed:")
     tm.playerUI.AddUIText(playerId, "txtWinchSpeed", winch.speed, function(UICallbackData)
@@ -332,6 +391,7 @@ local function DrawConfigureWinch(playerId, data)
             return
         end
         winch.speed = tonumber(UICallbackData.value)
+        inventory.loadout[inventorySlot].config.speed = tonumber(UICallbackData.value)
     end)
 end
 
@@ -462,7 +522,7 @@ end
 function UI.UpdateInventoryMessage(playerId)
     local inventory = playerData[playerId].inventory
     local selectedSlot = inventory.slots[inventory.selectedSlot]
-    local header = inventory.selectedSlot .. " - " .. inventory.loadout[inventory.selectedSlot].name
+    local header = "[" .. inventory.selectedSlot .. "] - " .. inventory.loadout[inventory.selectedSlot].name .. (GetGroupBySlot(inventory, inventory.selectedSlot) and " | Group " .. GetGroupBySlot(inventory, inventory.selectedSlot) or "")
     local action = selectedSlot.isUsed and "Retrieve" or "Use"
     if playerData[playerId].action == "connectingWinch" then
         action = "Connecting"
