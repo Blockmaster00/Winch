@@ -1,6 +1,6 @@
 tm.os.SetModTargetDeltaTime(1 / 60)
 
-local VERSION = "1.1.2"
+local VERSION = "1.0.1"
 tm.os.Log("Winch mod version " .. VERSION .. " loaded.")
 
 local Winch = tm.os.DoFile("winch")

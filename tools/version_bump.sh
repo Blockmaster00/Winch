@@ -9,10 +9,17 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+
 # repo root is one level up from this script, regardless of caller's cwd
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)
 main_lua="$repo_root/winch_mod_local/main.lua"
+
+if [ -f "$repo_root/.env" ]; then
+  set -a
+  source "$repo_root/.env"
+  set +a
+fi
 
 # extract current major.minor.patch from main.lua
 current=$(grep -oE 'VERSION *= *"[0-9]+\.[0-9]+\.[0-9]+"' "$main_lua" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
@@ -42,5 +49,9 @@ sed -i "s/\(VERSION *= *\"\)[0-9]*\.[0-9]*\.[0-9]*\(\"\)/\1${new_version}\2/" "$
 # regenerate Preview.png from the PDF template, if one exists
 template="$repo_root/preview_template.pdf"
 if [ -f "$template" ]; then
-  python3 "$script_dir/generate_preview.py" "$new_version" --template "$template" --output "$repo_root/Preview.png"
+  font_args=()
+  if [ -n "${JUMBOX_FONT_FILE:-}" ]; then
+    font_args+=(--font-file "$JUMBOX_FONT_FILE")
+  fi
+  "$repo_root/.venv/bin/python" "$script_dir/generate_preview.py" "$new_version" --template "$template" --output "$repo_root/Preview.png" --font "JumboxBold" "${font_args[@]}"
 fi
