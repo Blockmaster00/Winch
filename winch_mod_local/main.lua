@@ -1,6 +1,6 @@
 tm.os.SetModTargetDeltaTime(1 / 60)
 
-local VERSION = "1.01"
+local VERSION = "1.1.2"
 tm.os.Log("Winch mod version " .. VERSION .. " loaded.")
 
 local Winch = tm.os.DoFile("winch")
@@ -624,7 +624,7 @@ function RegionFixStrToVec3(value) -- "value" must be a string of 3 numbers sepa
     local newValue = string.gsub(value, "%(", "[")
     newValue = string.gsub(newValue, "%)", "]")
     local vTable = {}
-    vTable = json.parse(newValue) -- parse string into an array table
+    vTable = json.parse(newValue)                                        -- parse string into an array table
     local vec3value = tm.vector3.Create(vTable[1], vTable[2], vTable[3]) -- create a new vector3 with individual axis data to avoid decimal separators being stripped out
     return vec3value
 end
