@@ -1,5 +1,7 @@
 #!/bin/bash
 
+changenote="$1"
+
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)
 
@@ -20,6 +22,21 @@ if ! [ $(stat -c%s "$repo_root/Preview.png") -lt 1048576 ]; then
   echo "Preview file is above 1MB"
   exit 1
 fi
+
+# check if upload.vdf exists
+if ! [ -f "$repo_root/upload.vdf" ]; then
+  echo "Error: upload.vdf not found in repository root"
+  exit 1
+fi
+
+# update changenote in upload.vdf to following format: "Version: <VERSION_NUMBER> - <CHANGENOTE>" or "Version: <VERSION_NUMBER>" if no changenote is provided
+version=$(grep -oE 'VERSION *= *"[0-9]+\.[0-9]+\.[0-9]+"' "$repo_root/mod/main.lua" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+if [ -n "$changenote" ]; then
+  sed -i "s/\(\"changenote\" *\"\).*\(\"\)/\1Version: $version - $changenote\2/" "$repo_root/upload.vdf"
+else
+  sed -i "s/\(\"changenote\" *\"\).*\(\"\)/\1Version: $version\2/" "$repo_root/upload.vdf"
+fi
+
 
 steamcmd \
   +login "${STEAM_USER}" \

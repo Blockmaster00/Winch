@@ -13,7 +13,7 @@ fi
 # repo root is one level up from this script, regardless of caller's cwd
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)
-main_lua="$repo_root/winch_mod_local/main.lua"
+main_lua="$repo_root/mod/main.lua"
 
 if [ -f "$repo_root/.env" ]; then
   set -a
