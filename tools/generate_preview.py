@@ -72,8 +72,8 @@ def fill_and_render(
     for b in page.get_text("dict")["blocks"]:
         if b["type"] != 0:
             continue
-        for l in b["lines"]:
-            for s in l["spans"]:
+        for line in b["lines"]:
+            for s in line["spans"]:
                 if s["font"] == font_name:
                     target_span = s
                     break
@@ -83,7 +83,9 @@ def fill_and_render(
             break
 
     if target_span is None:
-        raise ValueError(f"No text span with font '{font_name}' found in {template_path}")
+        raise ValueError(
+            f"No text span with font '{font_name}' found in {template_path}"
+        )
 
     font_buffer = load_font_buffer(font_file, version)
 
@@ -171,4 +173,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()   
+    main()
