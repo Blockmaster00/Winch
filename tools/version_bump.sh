@@ -16,6 +16,11 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)
 main_lua="$repo_root/mod/main.lua"
 
+if [ ! -f "$main_lua" ]; then
+  echo "Error: Mod entrypoint not found: $main_lua" >&2
+  exit 1
+fi
+
 if [ -f "$repo_root/.env" ]; then
   set -a
   # shellcheck source=/dev/null
@@ -24,14 +29,12 @@ if [ -f "$repo_root/.env" ]; then
 fi
 
 # extract current major.minor.patch from main.lua
-current=$(grep -oE 'VERSION *= *"[0-9]+\.[0-9]+\.[0-9]+"' "$main_lua" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-if [ -z "$current" ]; then
-  echo "Error: could not find VERSION in $main_lua" >&2
+current=$(grep -oE 'VERSION *= *"[0-9]+\.[0-9]+\.[0-9]+"' "$main_lua" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+if [[ ! "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Error: Could not find a valid major.minor.patch VERSION in $main_lua" >&2
   exit 1
 fi
-major=$(echo "$current" | cut -d. -f1)
-minor=$(echo "$current" | cut -d. -f2)
-patch=$(echo "$current" | cut -d. -f3)
+IFS=. read -r major minor patch <<< "$current"
 
 case "$1" in
   major)
