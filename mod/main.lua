@@ -5,8 +5,10 @@ tm.os.Log("Winch mod version " .. VERSION .. " loaded.")
 
 local Winch = tm.os.DoFile("winch")
 local Anchor = tm.os.DoFile("anchor")
+local CONNECTABLE = tm.os.DoFile("connectable")
 local UI = tm.os.DoFile("ui")
 local SAVING = tm.os.DoFile("saving")
+local HELPERS = tm.os.DoFile("data_static/helpers")
 
 local KEYBINDS = {
     ["`"] = true,
@@ -130,12 +132,8 @@ sessionSettings = SAVING.loadSessionSettings() or sessionSettings
 
 local playerData = {}
 
-local spawnedObjects = {}
-
-
 function UseAnchor(playerId, anchorItem)
     if anchorItem.isUsed then
-        RemoveByValue(spawnedObjects, anchorItem.objectReference.object)
         anchorItem.objectReference:remove()
         anchorItem.objectReference = nil
         anchorItem.isUsed = false
@@ -285,7 +283,7 @@ function PlayerUpdate(player)
 
     if playerData[playerId].action == "connectingWinch" then
         for point, visualizer in pairs(playerData[playerId].connectionPoints) do
-            local pointPos = GetConnectionPointPosition(point)
+            local pointPos = HELPERS.GetConnectionPointPosition(point)
             visualizer.GetTransform().SetPosition(pointPos)
         end
     end
@@ -309,7 +307,7 @@ function SelectConnectionPoint(playerId, position)
         distance = math.huge
     }
     for point, visualizer in pairs(playerData[playerId].connectionPoints) do
-        local pointPos = GetConnectionPointPosition(point)
+        local pointPos = HELPERS.GetConnectionPointPosition(point)
         local distanceToPoint = tm.vector3.Distance(pointPos, position)
         if distanceToPoint <= 10 and distanceToPoint < closest.distance then
             closest = {
@@ -333,10 +331,10 @@ function SelectConnectionPoint(playerId, position)
 
         local playerStructure = tm.players.OccupiedStructure(playerId)
         local connectionPoints = GetAllConnectionPointsInRange(
-            GetConnectionPointPosition(playerData[playerId].selectedConnectionPoint), { playerStructure })
+            HELPERS.GetConnectionPointPosition(playerData[playerId].selectedConnectionPoint), { playerStructure })
 
         for key, connectionPoint in ipairs(connectionPoints) do
-            local pos = GetConnectionPointPosition(connectionPoint)
+            local pos = HELPERS.GetConnectionPointPosition(connectionPoint)
             local visualizer = tm.physics.SpawnObject(pos, Winch.CONNECTION_POINT.PREFAB)
             visualizer.GetTransform().SetScale(Winch.CONNECTION_POINT.SCALE)
             visualizer.SetIsStatic(true)
@@ -378,7 +376,7 @@ end
 function PlaceAnchor(playerId, hitPosition)
     tm.os.Log("Player " .. playerId .. " placing anchor at position: " .. tostring(hitPosition))
     local playerPos = tm.players.GetPlayerTransform(playerId).GetPositionWorld()
-    local hitDirection = Normalize(hitPosition - playerPos)
+    local hitDirection = HELPERS.Normalize(hitPosition - playerPos)
     -- start raycast just infront of hit position to get hit normal
     local raycastStartPos = hitPosition - (hitDirection * 0.1)
     local raycastHit = tm.physics.RaycastData(raycastStartPos, hitDirection, 1, true)
@@ -387,7 +385,6 @@ function PlaceAnchor(playerId, hitPosition)
 
     local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
     selectedInventorySlot.objectReference = Anchor.new(hitPosition, hitNormal)
-    table.insert(spawnedObjects, selectedInventorySlot.objectReference.object)
 
     playerData[playerId].action = "none"
     selectedInventorySlot.isUsed = true
@@ -413,7 +410,7 @@ function OnPlayerJoined(player)
             }, -- used to group multiple winches together to control them all at once, not implemented yet (each group is a collection of slots that are linked together)
             loadout = {
                 {
-                    type  = ITEM_TYPES.winch,
+                    type   = ITEM_TYPES.winch,
                     config = {
                         stiffness = Winch.stiffness,
                         maxStretch = Winch.maxStretch,
@@ -518,7 +515,6 @@ function OnPlayerLeft(player)
             item.objectReference = nil
             item.isUsed = false
         elseif playerData[playerId].inventory.loadout[key].type == ITEM_TYPES.anchor and item.isUsed then
-            RemoveByValue(spawnedObjects, item.objectReference.object)
             item.objectReference:remove()
             item.objectReference = nil
             item.isUsed = false
@@ -572,17 +568,21 @@ function GetAllConnectionPointsInRange(pos, excludedStructures)
     local connectionPoints = {}
     for i, player in ipairs(playerList) do
         for j, structure in ipairs(tm.players.GetPlayerStructures(player.playerId)) do
-            if (not TableContains(excludedStructures, structure)) and tm.vector3.Distance(structure.GetPosition(), pos) < range then
+            if (not HELPERS.TableContains(excludedStructures, structure)) and tm.vector3.Distance(structure.GetPosition(), pos) < range then
                 local connectionPointsOnStructure = GetAllConnectionPointsOnStructure(structure)
                 for k, point in ipairs(connectionPointsOnStructure) do
-                    table.insert(connectionPoints, point)
+                    table.insert(connectionPoints, HELPERS.WrapBlockTarget(point))
                 end
             end
         end
     end
-    for i, object in ipairs(spawnedObjects) do
-        if tm.vector3.Distance(object.GetTransform().GetPositionWorld(), pos) < range then
-            table.insert(connectionPoints, object)
+
+    for i, object in ipairs(CONNECTABLE.GetAll()) do
+        local connectionPointsOnObject = object:getConnectionPoints()
+        for k, point in ipairs(connectionPointsOnObject) do
+            if tm.vector3.Distance(point, pos) < range then
+                table.insert(connectionPoints, HELPERS.WrapConnectableTarget(object, k))
+            end
         end
     end
     return connectionPoints
@@ -592,95 +592,11 @@ function GetAllConnectionPointsOnStructure(structure)
     local blockList = structure.GetBlocks()
     local connectionPoints = {}
     for key, block in ipairs(blockList) do
-        if TableContains(Winch.CONNECTION_POINT.ATTACHABLE_BLOCKS, block.GetName()) then
+        if HELPERS.TableContains(Winch.CONNECTION_POINT.ATTACHABLE_BLOCKS, block.GetName()) then
             table.insert(connectionPoints, block)
         end
     end
     return connectionPoints
-end
-
-function Normalize(v)
-    local length = v.Magnitude()
-    if length == 0 then
-        return tm.vector3.Create(0, 0, 0)
-    else
-        return tm.vector3.Create(v.x / length, v.y / length, v.z / length)
-    end
-end
-
----@param point ModBlock|ModGameObject
-function GetConnectionPointPosition(point)
-    local point_type = point.ToString()
-    if point_type == "Trailmakers.Mods.Api.Proxies.ModBlock" then
-        return point.GetPosition()
-    elseif point_type == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
-        return point.GetTransform().GetPositionWorld()
-    end
-end
-
--- AI Function to turn direction vector into rotation quaternion
-function QuaternionFromToRotation(from, to)
-    from = Normalize(from)
-    to = Normalize(to)
-    local d = from.Dot(to)
-    -- Handle opposite vectors (180 degrees)
-    if d < -1 + 1e-6 then
-        local axis = tm.vector3.Right().Cross(from)
-        if axis.Magnitude() < 1e-6 then
-            axis = tm.vector3.Forward().Cross(from)
-        end
-        axis = Normalize(axis)
-        return tm.quaternion.Create(axis.x, axis.y, axis.z, 0)
-    end
-    -- Standard rotation calculation
-    local s = math.sqrt((1 + d) * 2)
-    local invs = 1 / s
-    local c = from.Cross(to)
-    return tm.quaternion.Create(c.x * invs, c.y * invs, c.z * invs, s * 0.5)
-end
-
-function TargetRot(PosHun, PosTar)
-    local relativeX = PosTar.x - PosHun.x
-    local relativeY = -PosTar.y + PosHun.y
-    local relativeZ = PosTar.z - PosHun.z
-    local angleradY = math.atan2(relativeX, relativeZ)
-    local relativeangY = math.deg(angleradY)
-    local relativehori = math.sqrt(relativeX * relativeX + relativeZ * relativeZ)
-    local angleradX = math.atan2(relativeY, relativehori)
-    local relativeangX = math.deg(angleradX)
-    local relativetot = tm.vector3.Create(relativeangX, relativeangY, 0)
-    return relativetot
-end
-
-function TableContains(table, value)
-    if #table == 0 then
-        return false
-    end
-    for _, v in pairs(table) do
-        if v == value then
-            return true
-        end
-    end
-    return false
-end
-
-function RemoveByValue(t, value)
-    for i = 1, #t do
-        if t[i] == value then
-            table.remove(t, i)
-            return true
-        end
-    end
-    return false
-end
-
-function RegionFixStrToVec3(value) -- "value" must be a string of 3 numbers separated by commas eg "(4.5, 6, 10.8)"
-    local newValue = string.gsub(value, "%(", "[")
-    newValue = string.gsub(newValue, "%)", "]")
-    local vTable = {}
-    vTable = json.parse(newValue)                                        -- parse string into an array table
-    local vec3value = tm.vector3.Create(vTable[1], vTable[2], vTable[3]) -- create a new vector3 with individual axis data to avoid decimal separators being stripped out
-    return vec3value
 end
 
 -- Update highlighting when selected item changes
@@ -783,7 +699,7 @@ end
 
 function OnPlayerClick(callback)
     local playerId = callback.playerId
-    local position = RegionFixStrToVec3(callback.value)
+    local position = HELPERS.RegionFixStrToVec3(callback.value)
 
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end

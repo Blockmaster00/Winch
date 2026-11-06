@@ -5,12 +5,13 @@ local SESSIONDATA_PATH = "SessionData.json"
 
 SAVING.lastPlayerDataSave = tm.os.GetTime()
 
+local ITEM_TYPES
+local UI
 
 function SAVING.Setup(config)
     ITEM_TYPES = config.ITEM_TYPES
     UI = config.UI
 end
-
 
 local function loadPlayerSaves()
     local success, data = pcall(function()

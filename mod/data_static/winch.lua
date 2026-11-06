@@ -1,12 +1,13 @@
+local HELPERS = tm.os.DoFile("data_static/helpers")
+
 ---@class Winch
 ---@field playerId number
 ---@field origin ModBlock
----@field target ModBlock|ModGameObject
+---@field target ModBlock|AttachmentTarget
 ---@field length number
 ---@field stiffness number value by which the magnitude of the force will be calculated
 ---@field maxStretch number percentage at which the connection will snap
 ---@field ropeObject ModGameObject
----@field targetType string
 local Winch = {}
 Winch.CONNECTION_POINT = {
     ATTACHABLE_BLOCKS = { "PFB_TubeThing [Server]" },
@@ -36,7 +37,7 @@ end
 
 ---@param playerId number
 ---@param origin ModBlock
----@param target ModBlock|ModGameObject
+---@param target ModBlock|AttachmentTarget
 ---@param stiffness number|nil
 ---@param maxStretch number|nil
 function Winch.new(playerId, origin, target, stiffness, maxStretch, speed)
@@ -47,7 +48,6 @@ function Winch.new(playerId, origin, target, stiffness, maxStretch, speed)
         stiffness = stiffness,
         maxStretch = maxStretch,
         speed = speed,
-        targetType = target.ToString()
     }, { __index = Winch })
 
     local originPos = origin.GetPosition()
@@ -66,7 +66,7 @@ function Winch:update()
         end
         return
     end
-    if not self.target.Exists() then
+    if not self.target.handle.Exists() then
         self:remove()
         if self.OnSnapCallback ~= nil then
             self.callbackData = self.callbackData or {}
@@ -87,7 +87,7 @@ function Winch:update()
 end
 
 function Winch:_visualize(originPos, targetPos, ropeLength)
-    local ropeRotation = TargetRot(originPos, targetPos)
+    local ropeRotation = HELPERS.TargetRot(originPos, targetPos)
     local ropePos = (originPos + targetPos) / 2
     if self.ropeObject == nil then
         self.ropeObject = tm.physics.SpawnCustomObjectRigidbody(ropePos, Winch.MODEL, Winch.TEXTURE, true, 1, "Asphalt")
@@ -101,17 +101,21 @@ end
 function Winch:_applyForces(originPos, targetPos, stretchedDistance)
     local ropeDirection = targetPos - originPos
     local force = self.stiffness * stretchedDistance
-    local targetType = self.target.ToString()
-    if targetType == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
-        if self.target.GetIsStatic() then
-            local originForce = ropeDirection * force
-            self.origin.AddForce(originForce.x, originForce.y, originForce.z)
-            return -- skips force distribution
-        end
+    if self.target.GetIsStatic() then
+        local originForce = ropeDirection * force
+        self.origin.AddForce(originForce.x, originForce.y, originForce.z)
+        return -- skips force distribution
     end
+    -- TODO(torque): once self.target.GetOffset() ~= 0, also apply torque = cross(offset, force) via self.target.handle.AddTorque*
     force = force / 2
     local targetForce = ((ropeDirection * -1) * force)
-    self.target.AddForce(targetForce.x, targetForce.y, targetForce.z)
+    self.target.handle.AddForce(targetForce.x, targetForce.y, targetForce.z)
+    -- apply torque if the target has an offset from its center
+    if self.target.GetOffset() ~= 0 then
+        local torque = self.target.GetOffset().Cross(targetForce)
+        self.target.handle.AddTorque(torque.x, torque.y, torque.z)
+    end
+
     local originForce = ropeDirection * force
     self.origin.AddForce(originForce.x, originForce.y, originForce.z)
 end
@@ -145,11 +149,7 @@ function Winch:remove()
 end
 
 function Winch:_getTargetPos()
-    if self.targetType == "Trailmakers.Mods.Api.Proxies.ModBlock" then
-        return self.target.GetPosition()
-    elseif self.targetType == "PFB_ModGameObject [Server] (ModGameObject_Server)" then
-        return self.target.GetTransform().GetPositionWorld()
-    end
+    return self.target.GetPosition()
 end
 
 function Winch:AddOnSnapCallback(playerId, callbackFunction, callbackData)
