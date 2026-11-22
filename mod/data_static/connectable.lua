@@ -1,4 +1,4 @@
-local HELPERS = tm.os.DoFile("data_static/helpers")
+local HELPERS = tm.os.DoFile("helpers")
 
 local CONNECTION_MAPS_PATH = "connectionMaps.json"
 

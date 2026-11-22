@@ -1,4 +1,4 @@
-local HELPERS = tm.os.DoFile("data_static/helpers")
+local HELPERS = tm.os.DoFile("helpers")
 
 ---@class Winch
 ---@field playerId number
@@ -40,6 +40,7 @@ end
 ---@param target ModBlock|AttachmentTarget
 ---@param stiffness number|nil
 ---@param maxStretch number|nil
+---@param speed number|nil
 function Winch.new(playerId, origin, target, stiffness, maxStretch, speed)
     local self = setmetatable({
         playerId = playerId,
@@ -111,8 +112,9 @@ function Winch:_applyForces(originPos, targetPos, stretchedDistance)
     local targetForce = ((ropeDirection * -1) * force)
     self.target.handle.AddForce(targetForce.x, targetForce.y, targetForce.z)
     -- apply torque if the target has an offset from its center
-    if self.target.GetOffset() ~= 0 then
-        local torque = self.target.GetOffset().Cross(targetForce)
+    local targetOffset = self.target.GetOffset()
+    if targetOffset.Magnitude() > 1e-6 then
+        local torque = targetOffset.Cross(targetForce)
         self.target.handle.AddTorque(torque.x, torque.y, torque.z)
     end
 

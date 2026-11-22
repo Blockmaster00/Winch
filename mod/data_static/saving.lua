@@ -71,9 +71,13 @@ local function deserializePlayerLoadout(loadoutData)
     end
 
     for _, itemData in ipairs(loadoutData) do
-        local itemType = deserializeItemType(itemData)
+        local itemTypeData = type(itemData) == "table" and (itemData.type or itemData) or itemData
+        local itemType = deserializeItemType(itemTypeData)
         if itemType ~= nil then
-            table.insert(loadout, itemType)
+            table.insert(loadout, {
+                type = itemType,
+                config = type(itemData) == "table" and itemData.config or nil
+            })
         end
     end
 
@@ -91,8 +95,9 @@ function SAVING.savePlayerData(playerDataTable)
             local loadout = {}
 
             for _, item in ipairs(playerData.inventory.loadout) do
-                local serializedItem = serializeItemType(item)
+                local serializedItem = serializeItemType(item.type or item)
                 if serializedItem ~= nil then
+                    serializedItem.config = item.config
                     table.insert(loadout, serializedItem)
                 end
             end

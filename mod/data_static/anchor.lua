@@ -1,4 +1,4 @@
-local HELPERS = tm.os.DoFile("data_static/helpers")
+local HELPERS = tm.os.DoFile("helpers")
 local CONNECTABLE = tm.os.DoFile("connectable")
 
 ---@class Anchor

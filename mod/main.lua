@@ -8,7 +8,7 @@ local Anchor = tm.os.DoFile("anchor")
 local CONNECTABLE = tm.os.DoFile("connectable")
 local UI = tm.os.DoFile("ui")
 local SAVING = tm.os.DoFile("saving")
-local HELPERS = tm.os.DoFile("data_static/helpers")
+local HELPERS = tm.os.DoFile("helpers")
 
 local KEYBINDS = {
     ["`"] = true,
@@ -385,6 +385,10 @@ function PlaceAnchor(playerId, hitPosition)
 
     local selectedInventorySlot = playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot]
     selectedInventorySlot.objectReference = Anchor.new(hitPosition, hitNormal)
+    local things = CONNECTABLE.GetAll()
+    for index, value in ipairs(things) do
+        tm.os.Log("Connectable: " .. value:GetName())
+    end
 
     playerData[playerId].action = "none"
     selectedInventorySlot.isUsed = true
@@ -493,8 +497,25 @@ function OnPlayerJoined(player)
     }
     local playerDataSave = SAVING.loadPlayerData(playerId)
     playerData[playerId].settings = playerDataSave and playerDataSave.settings or playerData[playerId].settings
-    playerData[playerId].inventory.loadout = playerDataSave and playerDataSave.loadout or
-        playerData[playerId].inventory.loadout
+    local savedLoadout = playerDataSave and playerDataSave.loadout
+    if savedLoadout and #savedLoadout > 0 then
+        local inventory = playerData[playerId].inventory
+        local defaultWinch = playerData[playerId].settings.defaultWinch
+        inventory.loadout = savedLoadout
+        inventory.slots = {}
+        for _, loadoutItem in ipairs(inventory.loadout) do
+            if loadoutItem.type == ITEM_TYPES.winch then
+                local config = loadoutItem.config or {}
+                loadoutItem.config = {
+                    stiffness = config.stiffness or defaultWinch.stiffness,
+                    maxStretch = config.maxStretch or defaultWinch.maxStretch,
+                    speed = config.speed or defaultWinch.speed
+                }
+            end
+            table.insert(inventory.slots, { objectReference = nil, isUsed = false })
+        end
+        inventory.selectedSlot = math.min(inventory.selectedSlot, #inventory.slots)
+    end
     UI.UpdateUi(playerId, "main")
 
     if not tm.os.IsSingleplayer then
@@ -528,6 +549,7 @@ end
 tm.players.OnPlayerLeft.add(OnPlayerLeft)
 
 function PlayerKeyDown(player, keyName)
+    tm.os.Log("Player " .. player.playerId .. " pressed key: " .. keyName)
     local keyBinds = playerData[player.playerId].settings.keybinds
     local keyBindFunctions = {
         [keyBinds.winch.extend] = OnPlayerExtendWinchStart,
@@ -699,7 +721,7 @@ end
 
 function OnPlayerClick(callback)
     local playerId = callback.playerId
-    local position = HELPERS.RegionFixStrToVec3(callback.value)
+    local position = tm.vector3.Create(callback.value)
 
     if playerData[playerId].input.chatOpen then return end
     if tm.players.GetPlayerIsInBuildMode(playerId) then return end
@@ -831,8 +853,10 @@ function OnPlayerOpenCloseInventory(playerId)
 end
 
 function OnPlayerUseItem(playerId)
+    tm.os.Log("Player " .. playerId .. " pressed use item key.")
     if playerData[playerId].input.chatOpen then return end
     if not playerData[playerId].inventory.isOpen then return end
+    tm.os.Log("Player " .. playerId .. " is using item in slot " .. playerData[playerId].inventory.selectedSlot)
 
     playerData[playerId].inventory.loadout[playerData[playerId].inventory.selectedSlot].type.onUseCallback(playerId,
         playerData[playerId].inventory.slots[playerData[playerId].inventory.selectedSlot])
